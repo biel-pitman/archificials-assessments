@@ -1,7 +1,7 @@
 /**
  * Architecture vertical – dimension images (CDN paths).
  */
-const BASE = "https://cdn.jsdelivr.net/gh/BielPitman/archificials-assessments@v3.0.0/verticals/architecture/images";
+const BASE = "https://cdn.jsdelivr.net/gh/biel-pitman/archificials-assessments@v3.0.0/verticals/architecture/images";
 
 export const DIM_IMAGES = {
   operational:         `${BASE}/operational.webp`,
