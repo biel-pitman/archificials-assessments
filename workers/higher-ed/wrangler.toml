@@ -1,0 +1,13 @@
+name = "higher-ed-ai-scorer-v2"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+AIRTABLE_BASE_ID = "appB7PmFnNvV3085q"
+AIRTABLE_TABLE = "Higher Ed V2 Assessments"
+NOTIFY_EMAIL = "biel@archificials.com"
+
+# Secrets (set via `wrangler secret put`):
+# ANTHROPIC_API_KEY
+# AIRTABLE_API_KEY
+# RESEND_API_KEY

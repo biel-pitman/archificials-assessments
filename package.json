@@ -6,9 +6,11 @@
   "scripts": {
     "build:law-firm": "node build.js --vertical=law-firm",
     "build:architecture": "node build.js --vertical=architecture",
+    "build:higher-ed": "node build.js --vertical=higher-ed",
     "build:all": "node build.js --all",
     "watch:law-firm": "node build.js --vertical=law-firm --watch",
-    "watch:architecture": "node build.js --vertical=architecture --watch"
+    "watch:architecture": "node build.js --vertical=architecture --watch",
+    "watch:higher-ed": "node build.js --vertical=higher-ed --watch"
   },
   "devDependencies": {
     "esbuild": "^0.24.0"
