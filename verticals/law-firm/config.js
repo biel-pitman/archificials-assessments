@@ -1,0 +1,36 @@
+export const CONFIG = {
+  VERSION: "2.0.0",
+  WORKER_URL: "https://law-firm-ai-scorer-v2.law-firm-ai-scorer.workers.dev",
+  ROOT_ID: "ach-af-v2",
+  routingFieldId: "practice_area",
+  payloadFieldName: "practice_area",
+  BRAND: {
+    name: "Archificials",
+    tagline: "Powered by Archificials",
+    website: "https://www.archificials.com",
+    color: {
+      primary: "#1a1a2e",
+      accent: "#e27308",
+      accentHover: "#c96407",
+      bg: "#f8f9fa",
+      card: "#ffffff",
+      text: "#1a1a2e",
+      textLight: "#6c757d",
+      border: "#e0e0e0",
+      success: "#28a745",
+      progressBg: "#e9ecef",
+    },
+  },
+  TIERS: [
+    { max: 25, label: "Getting Started", color: "#f4c089" },
+    { max: 50, label: "Building Foundations", color: "#f0a050" },
+    { max: 75, label: "Accelerating", color: "#e27308" },
+    { max: 101, label: "Leading", color: "#a85206" },
+  ],
+  WEIGHTS: {
+    operational: 0.35,
+    acquisition: 0.25,
+    digital: 0.20,
+    practice_readiness: 0.20,
+  },
+};

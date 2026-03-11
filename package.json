@@ -1,0 +1,16 @@
+{
+  "name": "archificials-assessments",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Archificials AI Readiness Assessments – multi-vertical monorepo",
+  "scripts": {
+    "build:law-firm": "node build.js --vertical=law-firm",
+    "build:architecture": "node build.js --vertical=architecture",
+    "build:all": "node build.js --all",
+    "watch:law-firm": "node build.js --vertical=law-firm --watch",
+    "watch:architecture": "node build.js --vertical=architecture --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
+  }
+}
