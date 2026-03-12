@@ -199,5 +199,121 @@ Add an HTML Embed block on the assessment page:
 ## Git Workflow
 
 - All source + built dist files are committed (dist is needed for CDN)
-- Tag releases with semver: `git tag v{x.y.z} && git push origin main --tags`
+- Branch: `master` (not main)
+- Tag releases with semver: `git tag v{x.y.z} && git push origin master --tags`
 - jsDelivr caches by tag, so a new tag = instant CDN update
+
+---
+
+## Report Generation Pipeline
+
+Post-assessment pipeline that generates branded AI readiness presentations and service proposals. Built across 5 separate sessions.
+
+### Architecture Overview
+
+```
+Assessment Worker → Email with [Generate Report] button
+  → Report Orchestrator Worker (validates HMAC, fetches Airtable, runs Brave Search + Claude API)
+    → Research outputs: market analysis, deployment scenarios, meeting brief
+    → Assembler: research JSON → reveal.js HTML presentation
+    → Upload to R2 bucket
+    → Report Gateway Worker serves password-protected presentation
+  → Biel receives: report URL + password + meeting brief via email
+  → After client meeting: CLI generates branded DOCX proposal
+```
+
+### Directory Structure (New)
+
+```
+reports/
+├── template/
+│   ├── base.html          # reveal.js 5.x template (16:9, self-contained)
+│   ├── theme.css          # Archificials branded theme
+│   └── charts.js          # 7 Plotly chart utility functions
+├── engine/
+│   └── assembler.js       # Maps research JSON → reveal.js slides (~30 slides)
+├── research/
+│   ├── market-analysis.js # Brave Search + Claude prompt builder
+│   ├── deployment-scenarios.js # 4 scenario prompt builder
+│   └── meeting-brief.js   # Internal meeting prep prompt builder
+├── proposal/
+│   ├── template.js        # Branded DOCX template (docx-js)
+│   ├── generator.js       # Content → DOCX assembly
+│   └── cli.js             # CLI tool for proposal generation
+└── images/
+    └── {vertical}/        # 18 presentation images per vertical (WebP, 1920x1080)
+```
+
+### Workers (New)
+
+| Worker | Purpose | URL |
+|--------|---------|-----|
+| `report-gateway` | Serves password-protected reports from R2 | Set after deploy |
+| `report-orchestrator` | Brain of the pipeline: research + assembly | Set after deploy |
+
+### Report Gateway Worker
+- Serves HTML presentations from R2 bucket `archificials-reports`
+- Password protection: checks SHA-256 hash stored in R2 object metadata
+- Session: sets `report_auth` cookie (24h) after correct password
+- Routes: `GET /r/{slug}` → password page or presentation
+
+### Report Orchestrator Worker
+- Trigger: `POST /generate?id=RECORD_ID&vertical=SLUG&t=TIMESTAMP&token=HMAC`
+- HMAC validation: SHA-256 of `{id}:{timestamp}` with shared REPORT_SECRET (7-day expiry)
+- Pipeline: validate → fetch Airtable → Brave Search (5 queries) → Claude API (3 calls) → assemble HTML → upload R2 → email
+- Claude model: `claude-sonnet-4-20250514` (research quality)
+- Brave Search: free tier, 1000 queries/month
+
+### Secrets Required
+
+| Secret | Workers |
+|--------|---------|
+| `ANTHROPIC_API_KEY` | All assessment workers + report-orchestrator |
+| `AIRTABLE_API_KEY` | All assessment workers + report-orchestrator |
+| `RESEND_API_KEY` | All assessment workers + report-orchestrator |
+| `BRAVE_API_KEY` | report-orchestrator only |
+| `REPORT_SECRET` | All assessment workers + report-orchestrator (must be identical) |
+
+### Presentation Specs
+- **Engine:** reveal.js 5.x, 16:9 aspect ratio
+- **Charts:** Plotly.js (7 types: radar, bar, gauge, comparison, ROI line, Gantt, cost table)
+- **Slides:** ~30 per report (title, divider, content, chart, split layouts)
+- **Sources:** Every data claim must have a `[Source: URL]` citation
+- **PDF export:** Append `?print-pdf` to report URL, browser Print → Save as PDF
+- **Images:** 18 per vertical, served via jsDelivr CDN
+
+### Proposal Generator
+- **Format:** Branded DOCX (US Letter, docx-js)
+- **Structure:** Cover, TOC, executive summary, about Archificials, assessment results, chosen deployment scenario, pricing, terms, appendices
+- **CLI:** `npm run generate:proposal -- --report-slug=CLIENT --scenario=C --output=./proposal.docx`
+- **Input:** Research data from R2 + chosen scenario letter (A/B/C/D)
+
+### Brand Guidelines (Report Pipeline)
+- Primary: `#1a1a2e` (navy) — headings, headers, table headers
+- Accent: `#e27308` (orange) — buttons, highlights, chart accents, bullet markers
+- Background: `#f8f9fa` (light gray) — content slide backgrounds
+- Text: `#333333` (dark gray) — body text
+- Divider slides: dark navy background with orange accents
+- Content slides: light background with navy headings
+
+### Planning Documents
+
+All session instructions and specifications are stored at:
+`C:\Users\aponw\OneDrive\Documentos\Claude Workspace\projects\client-c\`
+
+| Document | Purpose |
+|----------|---------|
+| `report-pipeline-roadmap.md` | Master architecture, tech stack, brand specs, security model |
+| `report-pipeline-session-1.md` | Infrastructure & brand template |
+| `report-pipeline-session-2.md` | Research pipeline (Brave + Claude) |
+| `report-pipeline-session-3.md` | Presentation assembly & deployment |
+| `report-pipeline-session-4.md` | Trigger integration & E2E testing |
+| `report-pipeline-session-5.md` | Proposal document generator |
+| `report-pipeline-images.md` | 18 image specifications per vertical |
+
+### Pipeline Status
+- [ ] Session 1: Infrastructure & brand template
+- [ ] Session 2: Research pipeline
+- [ ] Session 3: Presentation assembly
+- [ ] Session 4: Trigger integration
+- [ ] Session 5: Proposal generator
