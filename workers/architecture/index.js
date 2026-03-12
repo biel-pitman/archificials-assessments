@@ -7,6 +7,32 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type"
 };
 
+// vertical-specific constants for report trigger
+const VERTICAL_SLUG = "architecture";
+const REPORT_ORCHESTRATOR_URL = "https://report-orchestrator.<your-subdomain>.workers.dev";
+
+// helper to generate HMAC token for report trigger
+async function generateReportToken(recordId, secret) {
+  const timestamp = Date.now().toString();
+  const message = `${recordId}:${timestamp}`;
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sig = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    new TextEncoder().encode(message)
+  );
+  const token = Array.from(new Uint8Array(sig))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  return { token, timestamp };
+}
+
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -301,7 +327,7 @@ const MODULE_FIELDS = {
 
 // ─── Notification Email ─────────────────────────────────────────────────────
 
-function buildNotificationEmail(answers, scores) {
+async function buildNotificationEmail(answers, scores, recordId, env) {
   const firm = answers.firm_name || "Unknown Firm";
   const tier = scoreTier(scores.overall);
   const mk = answers.module_key || "H";
@@ -347,6 +373,27 @@ function buildNotificationEmail(answers, scores) {
     .map(o => `<li style="margin-bottom:6px;">${o}</li>`)
     .join("");
 
+  // if we have a record id and secret, build a report button row
+  let reportRow = "";
+  if (recordId && env && env.REPORT_SECRET) {
+    const { token, timestamp } = await generateReportToken(recordId, env.REPORT_SECRET);
+    const reportUrl = `${REPORT_ORCHESTRATOR_URL}/generate?id=${recordId}&vertical=${VERTICAL_SLUG}&t=${timestamp}&token=${token}`;
+    reportRow = `
+    <tr>
+      <td colspan="2" style="padding: 30px 0; text-align: center; border-top: 2px solid #e27308;">
+        <a href="${reportUrl}"
+           style="display: inline-block; background-color: #e27308; color: #ffffff;
+                  padding: 16px 32px; text-decoration: none; border-radius: 6px;
+                  font-size: 18px; font-weight: bold; font-family: Arial, sans-serif;">
+          Generate Full Report
+        </a>
+        <p style="margin-top: 12px; font-size: 13px; color: #6c757d; font-family: Arial, sans-serif;">
+          Click to generate a detailed AI readiness presentation for this client
+        </p>
+      </td>
+    </tr>`;
+  }
+
   const html = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
@@ -378,7 +425,7 @@ function buildNotificationEmail(answers, scores) {
     ${opportunitiesList ? `<h2 style="font-size:18px;margin:24px 0 8px;">Top Opportunities</h2><ol style="color:#555;line-height:1.6;">${opportunitiesList}</ol>` : ""}
 
     <h2 style="font-size:18px;margin:24px 0 12px;">Assessment Answers</h2>
-    <table style="width:100%;border-collapse:collapse;">${answerTable}</table>
+    <table style="width:100%;border-collapse:collapse;">${answerTable}${reportRow}</table>
   </div>
   <div style="padding:16px 32px;background:#f8f8fa;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 8px 8px;text-align:center;color:#888;font-size:13px;">
     Archificials Assessment System v2
@@ -391,8 +438,8 @@ function buildNotificationEmail(answers, scores) {
 
 // ─── Send Email via Resend ──────────────────────────────────────────────────
 
-async function sendNotificationEmail(env, answers, scores) {
-  const { html, subject } = buildNotificationEmail(answers, scores);
+async function sendNotificationEmail(env, answers, scores, recordId) {
+  const { html, subject } = await buildNotificationEmail(answers, scores, recordId, env);
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -534,7 +581,7 @@ var index_default = {
     }
 
     if (scores) {
-      tasks.push(sendNotificationEmail(env, answers, scores));
+      tasks.push(sendNotificationEmail(env, answers, scores, recordId));
     }
 
     await Promise.all(tasks);

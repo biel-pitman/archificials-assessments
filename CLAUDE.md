@@ -54,7 +54,7 @@ Images (dimension icons) are also served from the same CDN:
 https://cdn.jsdelivr.net/gh/biel-pitman/archificials-assessments@v{tag}/verticals/{slug}/images/
 ```
 
-**Current tag:** `v3.1.0` — bump the tag when adding new verticals or making changes.
+**Current tag:** `v3.2.0` — bump the tag when adding new verticals or making changes.
 
 ## Assessment Flow (Phases)
 
@@ -493,3 +493,30 @@ All session instructions and specifications are stored at:
 Session 4 will integrate the orchestrator endpoint with the assessment worker trigger, perform end‑to‑end testing, and handle status tracking. The fully assembled presentation HTML and metadata generated in Session 3 will be consumed by the gateway and later the proposal generator.
 
 The research outputs from this session feed directly into Session 3's assembly pipeline.
+
+### Trigger Integration
+- All 3 assessment workers now include [Generate Report] button in notification emails
+- Button URL contains HMAC-signed token (7-day expiry)
+- REPORT_SECRET must be identical across all assessment workers + report-orchestrator
+
+### Image Assets
+- `reports/images/{vertical}/` — Presentation images per vertical
+- Served via jsDelivr CDN at @v3.2.0 tag
+
+### Current Tag: v3.2.0
+
+### End-to-End Flow (Production)
+1. Client submits assessment on Webflow
+2. Scoring worker processes, stores in Airtable, emails Biel
+3. Biel clicks [Generate Report] in email
+4. Report orchestrator: validates → searches → researches → assembles → uploads
+5. Biel receives URL + password + meeting brief
+6. Client views presentation at password-protected URL
+7. PDF downloadable via ?print-pdf
+
+### Status
+- [x] Session 1: Infrastructure & brand template
+- [x] Session 2: Research pipeline
+- [x] Session 3: Presentation assembly
+- [x] Session 4: Trigger integration
+- [ ] Session 5: Proposal generator

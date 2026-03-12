@@ -705,9 +705,10 @@ function titleSlide(text, subtext) {
 `;
 }
 
-function dividerSlide(title, subtitle = '') {
+function dividerSlide(title, subtitle = '', bgUrl = '') {
+    const style = bgUrl ? ` style="background-image:url('${bgUrl}');background-size:cover;background-position:center;"` : '';
     return `
-<section class="slide-divider">
+<section class="slide-divider"${style}>
     <h1>${title}</h1>
     ${subtitle ? `<p>${subtitle}</p>` : ''}
 </section>
@@ -803,6 +804,9 @@ function assemblePresentation(data) {
         date
     } = data;
 
+    // base URL for presentation images (tag should match released git tag)
+    const IMAGE_BASE = `https://cdn.jsdelivr.net/gh/biel-pitman/archificials-assessments@v3.2.0/reports/images/${vertical}/`;
+
     // build bullets from executive summary
     const execBullets = meetingBrief.executiveSummary
         ? meetingBrief.executiveSummary
@@ -830,40 +834,52 @@ function assemblePresentation(data) {
     slides.push(dividerSlide('Executive Summary'));
     slides.push(contentSlide('Key Findings', execBullets));
 
-    slides.push(dividerSlide('Assessment Results'));
+    slides.push(dividerSlide('Assessment Results', '', `${IMAGE_BASE}section-results.webp`));
     slides.push(chartSlide('Overall Score', 'overall-gauge', '', []));
     slides.push(chartSlide('Dimension Scores', 'dimension-radar', '', []));
 
     slides.push(splitSlide(
         'Operational Efficiency',
         `<p><strong>${scores.operational || 0}/100</strong><br>Tier: ${tierLabel}</p>`,
-        `<div style="background:#eee;width:100%;height:200px;display:flex;align-items:center;justify-content:center;">Dimension image</div>`
+        `<div style="width:100%;height:200px;
+                    background:url('${IMAGE_BASE}dim-operational.webp') center/cover no-repeat;
+                    "></div>`
     ));
     slides.push(splitSlide(
         'Client/Student Acquisition',
         `<p><strong>${scores.acquisition || 0}/100</strong><br>Tier: ${tierLabel}</p>`,
-        `<div style="background:#eee;width:100%;height:200px;display:flex;align-items:center;justify-content:center;">Dimension image</div>`
+        `<div style="width:100%;height:200px;
+                    background:url('${IMAGE_BASE}dim-acquisition.webp') center/cover no-repeat;
+                    "></div>`
     ));
     slides.push(splitSlide(
         'Digital Visibility',
         `<p><strong>${scores.digital || 0}/100</strong><br>Tier: ${tierLabel}</p>`,
-        `<div style="background:#eee;width:100%;height:200px;display:flex;align-items:center;justify-content:center;">Dimension image</div>`
+        `<div style="width:100%;height:200px;
+                    background:url('${IMAGE_BASE}dim-digital.webp') center/cover no-repeat;
+                    "></div>`
     ));
     slides.push(splitSlide(
         'Practice/Institutional Readiness',
         `<p><strong>${scores.readiness || 0}/100</strong><br>Tier: ${tierLabel}</p>`,
-        `<div style="background:#eee;width:100%;height:200px;display:flex;align-items:center;justify-content:center;">Dimension image</div>`
+        `<div style="width:100%;height:200px;
+                    background:url('${IMAGE_BASE}dim-readiness.webp') center/cover no-repeat;
+                    "></div>`
     ));
 
     slides.push(contentSlide('Top Opportunities', opportunityBullets));
 
-    slides.push(dividerSlide('Market Landscape'));
+    slides.push(dividerSlide(
+        'Market Landscape',
+        'Industry trends and competitive landscape analysis',
+        `${IMAGE_BASE}section-market.webp`
+    ));
     slides.push(contentSlide('Industry AI Adoption', [marketAnalysis.industryOverview?.summary || ''], []));
     slides.push(contentSlide('Competitive Landscape', [marketAnalysis.competitorLandscape?.summary || ''], []));
     slides.push(contentSlide('Tool Landscape', [marketAnalysis.toolLandscape?.summary || ''], []));
     slides.push(contentSlide('Gaps & Opportunities', opportunityBullets));
 
-    slides.push(dividerSlide('Deployment Scenarios'));
+    slides.push(dividerSlide('Deployment Scenarios', '', `${IMAGE_BASE}section-scenarios.webp`));
 
     ['A', 'B', 'C', 'D'].forEach(letter => {
         const scenario = deploymentScenarios[`scenario${letter}`];
@@ -882,7 +898,11 @@ function assemblePresentation(data) {
     slides.push(chartSlide('ROI Projection', 'roi-projection', '', []));
     slides.push(chartSlide('Implementation Timeline', 'implementation-gantt', '', []));
 
-    slides.push(dividerSlide('Recommended Path Forward'));
+    slides.push(dividerSlide(
+        'Recommended Path Forward',
+        '',
+        `${IMAGE_BASE}section-nextsteps.webp`
+    ));
     slides.push(contentSlide(
         `Why Scenario ${meetingBrief.recommendedScenario?.scenario || 'C'}`,
         [meetingBrief.recommendedScenario?.reasoning || '']
