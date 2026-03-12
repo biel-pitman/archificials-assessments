@@ -325,7 +325,7 @@ All session instructions and specifications are stored at:
 ### Pipeline Status
 - [x] Session 1: Infrastructure & brand template
 - [x] Session 2: Research pipeline
-- [ ] Session 3: Presentation assembly
+- [x] Session 3: Presentation assembly
 - [ ] Session 4: Trigger integration
 - [ ] Session 5: Proposal generator
 
@@ -467,14 +467,29 @@ All session instructions and specifications are stored at:
 
 **Full instructions:** See [DEPLOYMENT.md](DEPLOYMENT.md)
 
-### Handoff to Session 3
+### Session 3 Deliverables (COMPLETE)
 
-Session 3 will build the Presentation Assembler that:
-- Fetches research JSON outputs from R2 (from this session)
-- Maps research data → reveal.js slide HTML using the template from Session 1
-- Generates Plotly chart JSONs from scenario and analysis data
-- Assembles final HTML presentation with all slides and charts
-- Uploads assembled presentation to R2
-- Returns report URL for gateway serving
+✓ **Presentation Assembler** (`reports/engine/assembler.js`)
+- Transforms market analysis, deployment scenarios, meeting brief, and assessment answers into a full reveal.js presentation
+- Includes slide generator helpers, content/slide templates, and dynamic chart configuration logic
+- Avoids inlining large JS by generating chart utilities at runtime via `generateChartsUtilities()`
+- Replaces template tokens: `{{CLIENT_NAME}}`, `{{DATE}}`, `{{SLIDES_HTML}}`, `{{CHARTS_UTILITIES}}`, `{{CHARTS_JSON}}`
+- Self‑contained output suitable for R2 storage and gateway serving
+
+✓ **Orchestrator Integration** (`workers/report-orchestrator/index.js`)
+- Imports and invokes `assemblePresentation()` after research steps
+- Generates slug and password, uploads HTML to R2 with metadata
+- Includes link/password in notification email to Biel
+- Updated build script and `wrangler.toml` to bundle assembler code
+
+✓ **Build & Packaging**
+- Added `npm run build:report-orchestrator` script
+- Fixed earlier bundling errors by exporting chart functions and avoiding unescaped literals
+- Worker now compiles cleanly without warnings
+
+
+### Handoff to Session 4
+
+Session 4 will integrate the orchestrator endpoint with the assessment worker trigger, perform end‑to‑end testing, and handle status tracking. The fully assembled presentation HTML and metadata generated in Session 3 will be consumed by the gateway and later the proposal generator.
 
 The research outputs from this session feed directly into Session 3's assembly pipeline.

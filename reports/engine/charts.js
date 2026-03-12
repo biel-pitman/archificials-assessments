@@ -4,7 +4,7 @@
  * Uses Archificials brand colors and typography
  */
 
-const ARCHIFICIALS_COLORS = {
+export const ARCHIFICIALS_COLORS = {
     primary: '#1a1a2e',
     accent: '#e27308',
     accentHover: '#c96407',
@@ -22,7 +22,7 @@ const ARCHIFICIALS_COLORS = {
     tier4: '#a85206',  // Leading
 };
 
-const PLOTLY_LAYOUT_DEFAULTS = {
+export const PLOTLY_LAYOUT_DEFAULTS = {
     font: {
         family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         color: ARCHIFICIALS_COLORS.text,
@@ -41,7 +41,7 @@ const PLOTLY_LAYOUT_DEFAULTS = {
     hovermode: 'closest'
 };
 
-const PLOTLY_CONFIG = {
+export const PLOTLY_CONFIG = {
     responsive: true,
     displayModeBar: true,
     displaylogo: false,
@@ -52,7 +52,7 @@ const PLOTLY_CONFIG = {
  * 1. Dimension Score Radar Chart
  * Shows 4 dimension scores in a spider/radar chart
  */
-function createDimensionRadarChart(data) {
+export function createDimensionRadarChart(data) {
     // data = { operational: 68, acquisition: 52, digital: 45, readiness: 71 }
     
     const dimensions = [
@@ -116,7 +116,7 @@ function createDimensionRadarChart(data) {
  * 2. Dimension Score Bar Chart
  * Horizontal bars with tier color coding
  */
-function createDimensionBarChart(data) {
+export function createDimensionBarChart(data) {
     const dimensions = ['Operational Efficiency', 'Client/Student Acquisition', 'Digital Visibility', 'Practice/Institutional Readiness'];
     const values = [data.operational || 68, data.acquisition || 52, data.digital || 45, data.readiness || 71];
     
@@ -170,7 +170,7 @@ function createDimensionBarChart(data) {
  * 3. Tier Gauge Chart
  * Overall score gauge with tier zones
  */
-function createTierGaugeChart(data) {
+export function createTierGaugeChart(data) {
     const overallScore = Math.round(
         (data.operational + data.acquisition + data.digital + data.readiness) / 4
     );
@@ -243,7 +243,7 @@ function createTierGaugeChart(data) {
  * 4. Market Comparison Bar Chart
  * Compare client's capabilities vs industry average
  */
-function createMarketComparisonChart(data) {
+export function createMarketComparisonChart(data) {
     // data = { categories: [...], clientScores: [...], industryAverage: [...] }
     const categories = data.categories || [
         'Platform Maturity',
@@ -293,7 +293,7 @@ function createMarketComparisonChart(data) {
  * 5. ROI Projection Line Chart
  * Projected value over time for deployment scenarios
  */
-function createROIProjectionChart(data) {
+export function createROIProjectionChart(data) {
     // data = { scenario: 'A', months: [...], roi: [...], investment: [...] }
     const months = data.months || ['Month 0', 'Month 3', 'Month 6', 'Month 12', 'Month 18', 'Month 24'];
     const roiValues = data.roi || [-100, -60, -20, 150, 350, 600];  // In thousands
@@ -340,7 +340,7 @@ function createROIProjectionChart(data) {
  * 6. Implementation Timeline Gantt
  * Phase-based timeline for deployment scenarios
  */
-function createImplementationGanttChart(data) {
+export function createImplementationGanttChart(data) {
     // data = { phases: [...], startDates: [...], durations: [...] }
     const phases = data.phases || [
         'Requirements & Planning',
@@ -408,7 +408,7 @@ function createImplementationGanttChart(data) {
  * Off-the-shelf vs custom vs hybrid costs
  * Rendered as an HTML table (not Plotly, for simplicity)
  */
-function createCostComparisonChart(data) {
+export function createCostComparisonChart(data) {
     // data = { scenarios: { A: {...}, B: {...}, C: {...}, D: {...} } }
     const scenarios = data.scenarios || {
         A: { label: 'Rapid MVP', cost: 35000, timeline: '3 months', roi_month: 9 },
@@ -487,9 +487,11 @@ function initializeCharts() {
     }
 }
 
-// Auto-initialize charts when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeCharts);
-} else {
-    initializeCharts();
+// Auto-initialize charts when DOM is ready (browser only)
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeCharts);
+    } else {
+        initializeCharts();
+    }
 }

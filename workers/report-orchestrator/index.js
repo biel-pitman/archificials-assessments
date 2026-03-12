@@ -10,6 +10,8 @@
  * 6. Sends notification email
  */
 
+import { assemblePresentation } from '../../reports/engine/assembler.js';
+
 // Helper: Validate HMAC token
 async function validateToken(id, token, timestamp, secret) {
   try {
@@ -452,10 +454,50 @@ export default {
         
         await storeResultsInR2(env.REPORTS_BUCKET, clientSlug, results);
         
+        // Step 6b: Assemble presentation HTML and upload to R2
+        console.log('Assembling presentation HTML');
+        const { assemblePresentation } = await import('../../../reports/engine/assembler.js');
+        const friendlyDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        const reportHtml = assemblePresentation({
+          assessment: assessmentData,
+          scores: assessmentData.scores || {},
+          marketAnalysis,
+          deploymentScenarios,
+          meetingBrief,
+          vertical,
+          clientName,
+          date: friendlyDate
+        });
+        
+        // create slug with year-month
+        const now = new Date();
+        const slugDate = `${clientSlug}-${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+        
+        // generate random 8-character password
+        const password = Math.random().toString(36).substring(2, 10);
+        const pwHashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password));
+        const pwHash = Array.from(new Uint8Array(pwHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+        
+        await env.REPORTS_BUCKET.put(`reports/${slugDate}/index.html`, reportHtml, {
+          contentType: 'text/html',
+          metadata: {
+            'password-hash': pwHash,
+            'client-name': clientName
+          }
+        });
+        
         // Step 7: Send notification email
         console.log('Sending notification email');
         const clientName = assessmentData.inst_name || assessmentData.firm_name || 'Client';
-        const emailHtml = generateMeetingBriefEmail(clientName, meetingBrief);
+        let emailHtml = generateMeetingBriefEmail(clientName, meetingBrief);
+        
+        // append report link and password for Biel
+        const reportUrl = `https://${url.hostname.replace('report-orchestrator','report-gateway')}/r/${slugDate}`;
+        emailHtml += `
+          <hr />
+          <p><strong>Report URL:</strong> <a href="${reportUrl}">${reportUrl}</a></p>
+          <p><strong>Password:</strong> ${password}</p>
+        `;
         
         const emailSent = await sendNotificationEmail(
           env.NOTIFY_EMAIL,
@@ -471,6 +513,9 @@ export default {
           recordId: recordId,
           vertical: vertical,
           clientSlug: clientSlug,
+          reportSlug: slugDate,
+          reportUrl: reportUrl,
+          password: password,
           timestamp: new Date().toISOString(),
           results: {
             hasMarketAnalysis: !!marketAnalysis,
