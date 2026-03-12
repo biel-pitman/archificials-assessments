@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Report — Archificials</title>
+    
+    <!-- reveal.js CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/black.css">
+    
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #1a1a2e;
+            --accent: #e27308;
+            --accent-hover: #c96407;
+            --bg-light: #f8f9fa;
+            --card: #ffffff;
+            --text: #1a1a2e;
+            --text-light: #6c757d;
+            --border: #e0e0e0;
+            --tier-3: #e27308;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--text);
+            color: var(--text);
+        }
+        
+        .reveal {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        .reveal .slides {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .reveal section {
+            padding: 60px !important;
+            height: 100% !important;
+            width: 100% !important;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+        }
+        
+        .slide-title {
+            background: linear-gradient(135deg, var(--primary) 0%, #0f0f1f 100%) !important;
+        }
+        
+        .slide-title-content {
+            text-align: center;
+            color: white;
+        }
+        
+        .logo-anchor {
+            font-size: 14px;
+            color: var(--accent);
+            font-weight: 600;
+            margin-bottom: 40px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .slide-title h1 {
+            font-size: 56px;
+            font-weight: 700;
+            margin: 20px 0;
+            color: white;
+        }
+        
+        .slide-title .subtitle {
+            font-size: 28px;
+            color: rgba(255,255,255,0.8);
+            margin: 20px 0;
+        }
+        
+        .slide-content {
+            background: var(--bg-light);
+            color: var(--text);
+            padding: 60px;
+            border-radius: 8px;
+            max-width: 1200px;
+            width: 100%;
+        }
+        
+        .slide-content h1,
+        .slide-content h2 {
+            color: var(--primary);
+            font-weight: 700;
+            margin-bottom: 30px;
+        }
+        
+        .slide-content h1 {
+            font-size: 44px;
+        }
+        
+        .slide-content h2 {
+            font-size: 32px;
+        }
+        
+        .slide-content p {
+            font-size: 20px;
+            line-height: 1.6;
+            margin: 15px 0;
+        }
+        
+        .chart-container {
+            margin: 30px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        
+        .plotly-graph-div {
+            width: 100% !important;
+            height: 400px !important;
+        }
+        
+        .score-card {
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px auto;
+            text-align: center;
+            width: 200px;
+        }
+        
+        .score-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 10px 0;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 12px 28px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 15px 5px;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .cta-button:hover {
+            background: var(--accent-hover);
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+            <!-- TITLE SLIDE -->
+            <section class="slide-title">
+                <div class="slide-title-content">
+                    <div class="logo-anchor">ARCHIFICIALS</div>
+                    <h1>AI Readiness Assessment</h1>
+                    <p class="subtitle">Test Demo Report</p>
+                </div>
+            </section>
+            
+            <!-- OVERVIEW SLIDE -->
+            <section class="slide-content">
+                <h2>Assessment Overview</h2>
+                <p>This is a test report to verify the Report Gateway Worker and R2 bucket integration.</p>
+                <div class="chart-container">
+                    <div id="test-chart" class="plotly-graph-div"></div>
+                </div>
+            </section>
+            
+            <!-- SCORE CARD SLIDE -->
+            <section class="slide-content">
+                <h2>Your Scores</h2>
+                <div class="score-card">
+                    <div style="font-size: 14px; font-weight: 600; color: var(--text-light); margin-bottom: 8px;">Overall Score</div>
+                    <div class="score-value">72</div>
+                    <div style="font-size: 14px; color: var(--accent); font-weight: 600;">Accelerating</div>
+                </div>
+            </section>
+            
+            <!-- CTA SLIDE -->
+            <section class="slide-content">
+                <h2>Next Steps</h2>
+                <p>Gateway worker + R2 are working correctly!</p>
+                <div style="margin-top: 40px;">
+                    <button class="cta-button">Schedule Consultation</button>
+                </div>
+            </section>
+            
+            <!-- CLOSING SLIDE -->
+            <section class="slide-title">
+                <div class="slide-title-content">
+                    <h1>Thank You</h1>
+                    <p class="subtitle">Test Report Complete</p>
+                </div>
+            </section>
+        </div>
+    </div>
+    
+    <!-- Reveal.js -->
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5"></script>
+    
+    <!-- Test Chart -->
+    <script>
+        // Simple test chart
+        function initChart() {
+            if (document.getElementById('test-chart')) {
+                const data = [{
+                    x: ['Operational', 'Acquisition', 'Digital', 'Readiness'],
+                    y: [68, 52, 45, 71],
+                    type: 'bar',
+                    marker: { color: '#e27308' }
+                }];
+                
+                const layout = {
+                    title: 'Dimension Scores',
+                    font: { family: '-apple-system, sans-serif', color: '#1a1a2e' },
+                    paper_bgcolor: 'transparent',
+                    plot_bgcolor: 'transparent',
+                    yaxis: { range: [0, 100] }
+                };
+                
+                Plotly.newPlot('test-chart', data, layout, { responsive: true, displayModeBar: false });
+            }
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initChart);
+        } else {
+            initChart();
+        }
+    </script>
+    
+    <!-- Initialize Reveal.js -->
+    <script>
+        Reveal.initialize({
+            width: 1920,
+            height: 1080,
+            margin: 0.1,
+            hash: true,
+            transition: 'fade'
+        });
+    </script>
+</body>
+</html>

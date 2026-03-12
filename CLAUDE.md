@@ -226,22 +226,31 @@ Assessment Worker → Email with [Generate Report] button
 
 ```
 reports/
-├── template/
-│   ├── base.html          # reveal.js 5.x template (16:9, self-contained)
-│   ├── theme.css          # Archificials branded theme
-│   └── charts.js          # 7 Plotly chart utility functions
-├── engine/
-│   └── assembler.js       # Maps research JSON → reveal.js slides (~30 slides)
-├── research/
+├── engine/                # Session 1 ✓ COMPLETE
+│   ├── template.html      # reveal.js 5.x template (16:9, self-contained, branded)
+│   ├── charts.js          # 7 Plotly chart utility functions
+│   └── assembler.js       # Maps research JSON → reveal.js slides (Session 3)
+├── research/              # Session 2
 │   ├── market-analysis.js # Brave Search + Claude prompt builder
 │   ├── deployment-scenarios.js # 4 scenario prompt builder
 │   └── meeting-brief.js   # Internal meeting prep prompt builder
-├── proposal/
+├── proposal/              # Session 5
 │   ├── template.js        # Branded DOCX template (docx-js)
 │   ├── generator.js       # Content → DOCX assembly
 │   └── cli.js             # CLI tool for proposal generation
-└── images/
-    └── {vertical}/        # 18 presentation images per vertical (WebP, 1920x1080)
+├── test-report.html       # Test demo report (for gateway verification)
+└── images/                # Session 3+
+    ├── higher-ed/         # 18 presentation images per vertical
+    └── law-firm/
+
+workers/
+├── report-gateway/        # Session 1 ✓ COMPLETE
+│   ├── index.js          # Password-protected report serving from R2
+│   └── wrangler.toml     # Cloudflare config
+├── report-orchestrator/   # Session 2
+│   ├── index.js
+│   └── wrangler.toml
+└── (assessment workers)   # Existing — Modified in Session 4 only
 ```
 
 ### Workers (New)
@@ -256,6 +265,8 @@ reports/
 - Password protection: checks SHA-256 hash stored in R2 object metadata
 - Session: sets `report_auth` cookie (24h) after correct password
 - Routes: `GET /r/{slug}` → password page or presentation
+- Password form: branded Archificials UI (navy/orange)
+- **Status:** ✓ Built and ready to deploy (see DEPLOYMENT.md)
 
 ### Report Orchestrator Worker
 - Trigger: `POST /generate?id=RECORD_ID&vertical=SLUG&t=TIMESTAMP&token=HMAC`
@@ -312,8 +323,158 @@ All session instructions and specifications are stored at:
 | `report-pipeline-images.md` | 18 image specifications per vertical |
 
 ### Pipeline Status
-- [ ] Session 1: Infrastructure & brand template
-- [ ] Session 2: Research pipeline
+- [x] Session 1: Infrastructure & brand template
+- [x] Session 2: Research pipeline
 - [ ] Session 3: Presentation assembly
 - [ ] Session 4: Trigger integration
 - [ ] Session 5: Proposal generator
+
+### Session 1 Deliverables (COMPLETE)
+
+✓ **reveal.js Template** (`reports/engine/template.html`)
+- 16:9 aspect ratio (1920x1080)
+- Archificials brand colors and typography
+- Keyboard navigation (arrows, ESC for overview)
+- Hash-based slide URLs for direct linking
+- Print-friendly CSS for PDF export (`?print-pdf`)
+- Placeholder tokens for assembler: `{{CLIENT_NAME}}`, `{{DATE}}`, `{{SLIDES_HTML}}`, `{{CHARTS_JSON}}`
+- Sample branded slides showing title, divider, content, and CTA layouts
+- Slide footer with "Confidential — Prepared for {{CLIENT_NAME}} by Archificials"
+
+✓ **Plotly Chart Utilities** (`reports/engine/charts.js`)
+- 7 chart functions for data visualization
+  1. Dimension Radar Chart — Spider plot of 4 AI readiness dimensions
+  2. Dimension Bar Chart — Horizontal bars with tier color coding
+  3. Tier Gauge Chart — Overall score gauge (0-100) with color zones
+  4. Market Comparison Chart — Client vs industry average (5 categories)
+  5. ROI Projection Chart — Cumulative value over time (24 months)
+  6. Implementation Timeline — Gantt chart for 4 deployment phases
+  7. Cost Comparison Table — Scenario costs and timelines
+- All charts use Archificials brand colors (navy primary, orange accent)
+- Plotly layout defaults with transparent backgrounds
+- Auto-initialization on DOM ready
+
+✓ **Report Gateway Worker** (`workers/report-gateway/`)
+- Cloudflare Worker for password-protected report serving
+- Routes: `GET /r/:slug`, `POST /r/:slug/auth`, `GET /r/:slug/pdf`, `GET /health`
+- Password validation via SHA-256 hashes stored in R2 metadata
+- Auth cookies (24-hour expiry, HTTPOnly, Secure, SameSite=Strict)
+- Branded password form (Archificials colors, mobile-friendly)
+- PDF export support (reveal.js `?print-pdf` parameter)
+- R2 bucket integration via wrangler config
+- Ready to deploy to Cloudflare
+
+✓ **Deployment Guide** (`DEPLOYMENT.md`)
+- Prerequisites (Wrangler CLI, Cloudflare account)
+- Step-by-step deployment instructions
+- R2 bucket creation commands
+- Test report upload with password hashing
+- Gateway verification tests
+- Custom domain setup (optional)
+- Troubleshooting guide
+- Session 2 integration notes
+
+✓ **Test Report** (`reports/test-report.html`)
+- Minimal 5-slide reveal.js presentation
+- Title, overview, score card, CTA, and closing slides
+- Plotly bar chart example
+- Fully functional for gateway verification
+
+### Session 2 Deliverables (COMPLETE)
+
+✓ **Market Analysis Prompt Builder** (`reports/research/market-analysis.js`)
+- `buildSearchQueries(assessmentData)` — Generates 5 Brave Search queries tailored to industry and organization
+- `buildMarketAnalysisPrompt(assessmentData, searchResults)` — Constructs Claude prompt for market analysis
+- Outputs: Industry overview, competitor landscape, market size, tool landscape, gaps/opportunities, regulatory compliance
+- All claims cited with `[Source: URL]`
+- Returns structured JSON with industry trends, adoption rates, competitive examples, market tools
+
+✓ **Deployment Scenarios Prompt Builder** (`reports/research/deployment-scenarios.js`)
+- `buildDeploymentScenariosPrompt(assessmentData, searchResults, marketAnalysis)` — Generates 4 deployment scenarios
+- Scenario A: Off-the-Shelf AI Stack (quick wins, lowest risk)
+- Scenario B: Custom AI Platform (Archificials-built, highest long-term ROI)
+- Scenario C: Hybrid Approach (RECOMMENDED — balance of speed and customization)
+- Scenario D: AI-First Transformation (maximum competitive advantage)
+- Each scenario includes tools, timeline, costs, strengths/weaknesses, ROI projections
+- Returns structured JSON with implementation phases and cost breakdowns
+
+✓ **Meeting Brief Prompt Builder** (`reports/research/meeting-brief.js`)
+- `buildMeetingBriefPrompt(assessmentData, marketAnalysis, deploymentScenarios)` — Internal prep document for Biel
+- Includes: Executive summary, pain points, competitive context, recommended scenario, objection handling, budget positioning, staffing analysis, meeting agenda
+- Strategic and tactical guidance (not client-facing)
+- Returns structured JSON with conversation starters, objection responses, scenario recommendation rationale
+
+✓ **Report Orchestrator Worker** (`workers/report-orchestrator/`)
+- Cloudflare Worker that orchestrates the entire research pipeline
+- **Routes:**
+  - `POST /generate?id=RECORD_ID&vertical=SLUG&t=TIMESTAMP&token=HMAC` — Main orchestration endpoint
+  - `GET /status/:id` — Check generation status (placeholder for KV store)
+  - `GET /health` — Health check
+- **Flow:**
+  1. Validates HMAC-SHA256 token (7-day expiry)
+  2. Fetches assessment record from Airtable based on vertical
+  3. Runs 5 Brave Search queries in parallel
+  4. Calls Claude API (claude-sonnet-4-20250514) for market analysis
+  5. Calls Claude API for deployment scenarios
+  6. Calls Claude API for meeting brief
+  7. Stores all results in R2 as `/reports/{slug}/research.json`
+  8. Sends notification email with meeting brief HTML + research summary
+  9. Returns success JSON to client
+- Error handling for all external API failures
+- Test mode flag (`?test=true`) for development without HMAC validation
+
+✓ **wrangler.toml Configuration** (`workers/report-orchestrator/wrangler.toml`)
+- R2 bucket binding: `REPORTS_BUCKET` → `archificials-reports`
+- Environment variables: `AIRTABLE_BASE_ID`, `NOTIFY_EMAIL`, `CLAUDE_MODEL`, `MAX_TOKENS`
+- Secrets to set: `ANTHROPIC_API_KEY`, `AIRTABLE_API_KEY`, `BRAVE_API_KEY`, `RESEND_API_KEY`, `REPORT_SECRET`
+
+✓ **Test Report** (`reports/test-report.html`)
+- Minimal 5-slide reveal.js presentation
+- Title, overview, score card, CTA, and closing slides
+- Plotly bar chart example
+- Fully functional for gateway verification
+
+### Deployment Instructions
+
+**Next steps for deployment:**
+
+1. **Install Wrangler CLI** (if not already installed):
+   ```bash
+   npm install -g wrangler@latest
+   ```
+
+2. **Authenticate with Cloudflare**:
+   ```bash
+   wrangler login
+   # or set CLOUDFLARE_API_TOKEN environment variable
+   ```
+
+3. **Create R2 Bucket**:
+   ```bash
+   wrangler r2 bucket create archificials-reports
+   ```
+
+4. **Deploy Report Gateway Worker**:
+   ```bash
+   cd workers/report-gateway
+   wrangler deploy
+   ```
+
+5. **Test with Demo Report**:
+   - Follow instructions in `DEPLOYMENT.md` under "Step 4: Upload Test Report"
+   - Password: `test-password123`
+   - Test URL: `https://report-gateway.<account>.workers.dev/r/test-demo`
+
+**Full instructions:** See [DEPLOYMENT.md](DEPLOYMENT.md)
+
+### Handoff to Session 3
+
+Session 3 will build the Presentation Assembler that:
+- Fetches research JSON outputs from R2 (from this session)
+- Maps research data → reveal.js slide HTML using the template from Session 1
+- Generates Plotly chart JSONs from scenario and analysis data
+- Assembles final HTML presentation with all slides and charts
+- Uploads assembled presentation to R2
+- Returns report URL for gateway serving
+
+The research outputs from this session feed directly into Session 3's assembly pipeline.
