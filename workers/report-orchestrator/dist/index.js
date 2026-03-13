@@ -473,7 +473,7 @@ var index_default = {
         headers: { "Content-Type": "application/json" }
       });
     }
-    if (request.method === "POST" && url.pathname === "/generate") {
+    if ((request.method === "GET" || request.method === "POST") && url.pathname === "/generate") {
       const recordId = url.searchParams.get("id");
       const vertical = url.searchParams.get("vertical") || "law-firm";
       const token = url.searchParams.get("token");
