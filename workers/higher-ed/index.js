@@ -9,7 +9,7 @@ const corsHeaders = {
 
 // vertical-specific constants for report trigger
 const VERTICAL_SLUG = "higher-ed";
-const REPORT_ORCHESTRATOR_URL = "https://report-orchestrator.<your-subdomain>.workers.dev";
+const REPORT_ORCHESTRATOR_URL = "https://report-orchestrator.law-firm-ai-scorer.workers.dev";
 
 // helper to generate HMAC token for report trigger
 async function generateReportToken(recordId, secret) {
