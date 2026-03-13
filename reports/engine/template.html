@@ -10,6 +10,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/black.css">
     
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
     <!-- Plotly.js -->
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     
@@ -19,15 +23,21 @@
            ============================================ */
         :root {
             --primary: #1a1a2e;
+            --primary-light: #2d2d4a;
             --accent: #e27308;
             --accent-hover: #c96407;
+            --accent-light: rgba(226, 115, 8, 0.12);
             --bg-light: #f8f9fa;
+            --bg-warm: #fefcf9;
             --card: #ffffff;
             --text: #1a1a2e;
+            --text-body: #333333;
             --text-light: #6c757d;
             --border: #e0e0e0;
+            --border-light: #f0f0f0;
             --success: #28a745;
-            
+            --info: #3498db;
+
             /* Tier Colors */
             --tier-1: #f4c089;
             --tier-2: #f0a050;
@@ -48,9 +58,9 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: var(--text);
-            color: var(--text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--primary);
+            color: var(--text-body);
         }
         
         /* ============================================
@@ -59,15 +69,17 @@
         .reveal {
             width: 100% !important;
             height: 100% !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
         
         .reveal .slides {
             width: 100%;
             height: 100%;
+            text-align: left;
         }
-        
+
         .reveal section {
-            padding: 60px !important;
+            padding: 50px 60px !important;
             height: 100% !important;
             width: 100% !important;
             display: flex;
@@ -81,49 +93,92 @@
            Slide Backgrounds & Layouts
            ============================================ */
         .slide-content {
-            background: var(--bg-light);
-            color: var(--text);
-            padding: 60px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            background: var(--card);
+            color: var(--text-body);
+            padding: 50px 60px;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
             max-width: 1200px;
             width: 100%;
+            position: relative;
+            text-align: left;
         }
-        
+
+        .slide-content::before {
+            content: 'ARCHIFICIALS';
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.7;
+        }
+
         .slide-divider {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--text) 100%) !important;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 60%, #16213e 100%) !important;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            position: relative;
+            overflow: hidden;
         }
-        
+
+        .slide-divider::before {
+            content: '';
+            position: absolute;
+            top: -30%;
+            right: -10%;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(226,115,8,0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
         .slide-divider h1 {
             color: var(--card);
-            font-size: 56px;
-            font-weight: 700;
+            font-size: 52px;
+            font-weight: 800;
             margin-bottom: 20px;
             position: relative;
             padding-bottom: 30px;
+            letter-spacing: -0.5px;
         }
-        
+
         .slide-divider h1::after {
             content: '';
             position: absolute;
             bottom: 0;
             left: 50%;
             transform: translateX(-50%);
-            width: 80px;
+            width: 60px;
             height: 4px;
             background: var(--accent);
             border-radius: 2px;
         }
-        
+
         .slide-divider p {
-            color: rgba(255,255,255,0.8);
+            color: rgba(255,255,255,0.7);
             font-size: 20px;
             max-width: 600px;
             text-align: center;
+            font-weight: 300;
+            line-height: 1.5;
+        }
+
+        .slide-divider .section-number {
+            position: absolute;
+            top: 40px;
+            left: 60px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 3px;
         }
         
         /* ============================================
@@ -135,49 +190,70 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            position: relative;
+            overflow: hidden;
         }
-        
+
+        .slide-title::after {
+            content: '';
+            position: absolute;
+            bottom: -50%;
+            left: -20%;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(226,115,8,0.06) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
         .slide-title-content {
             text-align: center;
             color: var(--card);
             width: 100%;
+            position: relative;
+            z-index: 1;
         }
-        
+
         .logo-anchor {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--accent);
-            font-weight: 600;
+            font-weight: 700;
             margin-bottom: 40px;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 4px;
         }
-        
+
         .slide-title h1 {
-            font-size: 56px;
-            font-weight: 700;
+            font-size: 54px;
+            font-weight: 800;
             margin: 20px 0;
             color: var(--card);
+            letter-spacing: -1px;
+            line-height: 1.1;
         }
-        
+
         .slide-title .subtitle {
-            font-size: 28px;
-            color: rgba(255,255,255,0.8);
+            font-size: 26px;
+            color: rgba(255,255,255,0.85);
             margin: 20px 0;
             font-weight: 300;
         }
-        
+
         .slide-title .meta {
-            font-size: 16px;
-            color: rgba(255,255,255,0.6);
-            margin-top: 40px;
-            border-top: 1px solid rgba(255,255,255,0.2);
-            padding-top: 20px;
+            font-size: 15px;
+            color: rgba(255,255,255,0.5);
+            margin-top: 50px;
+            border-top: 1px solid rgba(255,255,255,0.15);
+            padding-top: 25px;
+            display: flex;
+            justify-content: center;
+            gap: 40px;
         }
-        
+
         .slide-title .meta-item {
-            margin: 10px 0;
+            margin: 0;
         }
-        
+
         .slide-title .meta-label {
             color: var(--accent);
             font-weight: 600;
@@ -190,85 +266,107 @@
         .slide-content h2 {
             color: var(--primary);
             font-weight: 700;
-            margin-bottom: 30px;
+            margin-bottom: 24px;
+            letter-spacing: -0.3px;
         }
-        
+
         .slide-content h1 {
-            font-size: 44px;
+            font-size: 38px;
         }
-        
+
         .slide-content h2 {
-            font-size: 32px;
+            font-size: 30px;
+            position: relative;
+            padding-bottom: 16px;
         }
-        
+
+        .slide-content h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 40px;
+            height: 3px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+
         .slide-content h3 {
             color: var(--accent);
-            font-size: 22px;
-            font-weight: 600;
-            margin: 20px 0 15px 0;
-        }
-        
-        .slide-content p,
-        .slide-content li {
-            color: var(--text);
             font-size: 20px;
-            line-height: 1.6;
-            margin: 15px 0;
+            font-weight: 600;
+            margin: 20px 0 12px 0;
         }
-        
+
+        .slide-content p {
+            color: var(--text-body);
+            font-size: 18px;
+            line-height: 1.7;
+            margin: 12px 0;
+        }
+
+        .slide-content li {
+            color: var(--text-body);
+            font-size: 18px;
+            line-height: 1.6;
+            margin: 10px 0;
+        }
+
         .slide-content ul,
         .slide-content ol {
-            margin-left: 30px;
-            margin-top: 20px;
-            margin-bottom: 20px;
+            margin-left: 24px;
+            margin-top: 16px;
+            margin-bottom: 16px;
         }
-        
+
         .slide-content li {
-            margin-bottom: 12px;
+            margin-bottom: 10px;
+            padding-left: 8px;
         }
-        
+
         .slide-content li::marker {
             color: var(--accent);
-            font-weight: 600;
+            font-weight: 700;
         }
         
         /* ============================================
            Chart Container
            ============================================ */
         .chart-container {
-            margin: 30px 0;
-            padding: 20px;
-            background: var(--card);
-            border-radius: 8px;
-            border: 1px solid var(--border);
+            margin: 24px 0;
+            padding: 24px;
+            background: var(--bg-warm);
+            border-radius: 10px;
+            border: 1px solid var(--border-light);
             width: 100%;
         }
-        
+
         .chart-title {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 600;
             color: var(--primary);
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
-        
+
         .plotly-graph-div {
             width: 100% !important;
-            height: 500px !important;
+            height: 450px !important;
         }
-        
+
         .chart-source {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-light);
             margin-top: 12px;
-            border-top: 1px solid var(--border);
-            padding-top: 12px;
+            border-top: 1px solid var(--border-light);
+            padding-top: 10px;
+            font-style: italic;
         }
-        
+
         .source-link {
             color: var(--accent);
             text-decoration: none;
         }
-        
+
         .source-link:hover {
             color: var(--accent-hover);
             text-decoration: underline;
@@ -279,55 +377,66 @@
            ============================================ */
         .score-card {
             background: var(--card);
-            border: 2px solid var(--border);
-            border-radius: 8px;
-            padding: 20px;
-            margin: 15px 0;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 24px 20px;
+            margin: 0;
             text-align: center;
             flex: 1;
             min-width: 200px;
+            transition: box-shadow 0.2s ease;
+            position: relative;
+            overflow: hidden;
         }
-        
-        .score-card.tier-1 {
-            border-color: var(--tier-1);
-            background: rgba(244, 192, 137, 0.08);
+
+        .score-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--border);
         }
-        
-        .score-card.tier-2 {
-            border-color: var(--tier-2);
-            background: rgba(240, 160, 80, 0.08);
-        }
-        
-        .score-card.tier-3 {
-            border-color: var(--tier-3);
-            background: rgba(226, 115, 8, 0.08);
-        }
-        
-        .score-card.tier-4 {
-            border-color: var(--tier-4);
-            background: rgba(168, 82, 6, 0.08);
-        }
-        
+
+        .score-card.tier-1::before { background: var(--tier-1); }
+        .score-card.tier-2::before { background: var(--tier-2); }
+        .score-card.tier-3::before { background: var(--tier-3); }
+        .score-card.tier-4::before { background: var(--tier-4); }
+
+        .score-card.tier-1 { border-color: var(--tier-1); }
+        .score-card.tier-2 { border-color: var(--tier-2); }
+        .score-card.tier-3 { border-color: var(--tier-3); }
+        .score-card.tier-4 { border-color: var(--tier-4); }
+
         .score-label {
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 12px;
+            font-weight: 700;
             color: var(--text-light);
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
+            letter-spacing: 1.5px;
+            margin-bottom: 10px;
         }
-        
+
         .score-value {
-            font-size: 36px;
-            font-weight: 700;
+            font-size: 42px;
+            font-weight: 800;
             color: var(--primary);
-            margin: 10px 0;
+            margin: 8px 0;
+            letter-spacing: -1px;
         }
-        
+
+        .score-suffix {
+            font-size: 18px;
+            font-weight: 400;
+            color: var(--text-light);
+        }
+
         .score-tier {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--accent);
+            margin-top: 4px;
         }
         
         /* ============================================
@@ -350,7 +459,7 @@
         .grid-4 {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr 1fr;
-            gap: 20px;
+            gap: 16px;
             margin: 20px 0;
         }
         
@@ -370,22 +479,31 @@
             background: var(--card);
         }
         
+        .slide-content table {
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
         .slide-content th {
             background: var(--primary);
             color: var(--card);
-            padding: 15px;
+            padding: 14px 16px;
             text-align: left;
             font-weight: 600;
-            font-size: 16px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        
+
         .slide-content td {
-            padding: 12px 15px;
-            border-bottom: 1px solid var(--border);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 15px;
         }
-        
+
         .slide-content tr:nth-child(even) {
-            background: rgba(248, 249, 250, 0.5);
+            background: var(--bg-light);
         }
         
         /* ============================================
@@ -395,30 +513,82 @@
             display: inline-block;
             background: var(--accent);
             color: var(--card);
-            padding: 12px 28px;
-            border-radius: 6px;
+            padding: 14px 32px;
+            border-radius: 8px;
             text-decoration: none;
             font-weight: 600;
             font-size: 16px;
-            margin: 15px 5px;
-            transition: background 0.3s ease;
+            margin: 15px 8px;
+            transition: all 0.3s ease;
             border: none;
             cursor: pointer;
+            letter-spacing: 0.3px;
         }
-        
+
         .cta-button:hover {
             background: var(--accent-hover);
-            text-decoration: none;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(226, 115, 8, 0.3);
         }
-        
+
         .cta-button.secondary {
             background: transparent;
             color: var(--accent);
             border: 2px solid var(--accent);
         }
-        
+
         .cta-button.secondary:hover {
-            background: rgba(226, 115, 8, 0.1);
+            background: var(--accent-light);
+        }
+
+        /* ============================================
+           Scenario Card (special layout)
+           ============================================ */
+        .scenario-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 24px;
+            text-align: left;
+        }
+
+        .scenario-card h3 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+        }
+
+        .scenario-card p {
+            font-size: 15px;
+            line-height: 1.5;
+            margin: 6px 0;
+        }
+
+        .scenario-card .cost {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .scenario-card.recommended {
+            border-color: var(--accent);
+            box-shadow: 0 2px 12px rgba(226, 115, 8, 0.1);
+        }
+
+        .scenario-card.recommended::before {
+            content: 'RECOMMENDED';
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--card);
+            background: var(--accent);
+            padding: 3px 10px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            width: fit-content;
+            letter-spacing: 1px;
         }
         
         /* ============================================
@@ -426,40 +596,74 @@
            ============================================ */
         .reveal .slide-number {
             background: transparent;
-            color: var(--text-light);
+            color: rgba(255,255,255,0.3);
             font-size: 12px;
+            font-family: 'Inter', sans-serif;
         }
-        
+
         .slide-footer {
             position: absolute;
-            bottom: 20px;
-            left: 0;
-            right: 0;
-            text-align: center;
-            font-size: 12px;
+            bottom: 16px;
+            left: 60px;
+            right: 60px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
             color: var(--text-light);
             pointer-events: none;
+            opacity: 0.6;
         }
-        
-        .slide-footer-text {
-            font-weight: 500;
-        }
-        
+
         /* ============================================
-           Header Logo (Top-Right)
+           Insight/Quote Block
            ============================================ */
-        .slide-header {
-            position: absolute;
-            top: 20px;
-            right: 30px;
+        .insight-block {
+            background: var(--accent-light);
+            border-left: 4px solid var(--accent);
+            padding: 16px 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 16px 0;
+        }
+
+        .insight-block p {
+            font-size: 16px;
+            font-style: italic;
+            color: var(--text-body);
+            margin: 0;
+        }
+
+        /* ============================================
+           Key Metric Row
+           ============================================ */
+        .metric-row {
+            display: flex;
+            gap: 24px;
+            margin: 16px 0;
+        }
+
+        .metric-item {
+            flex: 1;
+            text-align: center;
+            padding: 16px;
+            background: var(--bg-light);
+            border-radius: 8px;
+        }
+
+        .metric-item .value {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .metric-item .label {
             font-size: 12px;
-            font-weight: 700;
-            color: var(--accent);
+            font-weight: 600;
+            color: var(--text-light);
             text-transform: uppercase;
             letter-spacing: 1px;
-            z-index: 10;
+            margin-top: 4px;
         }
-        
+
         /* ============================================
            Reveal.js Print/PDF Overrides
            ============================================ */
@@ -468,17 +672,16 @@
                 page-break-after: always;
                 padding: 40px !important;
             }
-            
-            .slide-footer,
-            .slide-header {
+
+            .slide-footer {
                 display: none;
             }
-            
+
             .chart-container {
                 page-break-inside: avoid;
             }
         }
-        
+
         /* ============================================
            Reveal.js Speaker Notes (Hidden)
            ============================================ */
@@ -490,169 +693,6 @@
 <body>
     <div class="reveal">
         <div class="slides">
-            <!-- TITLE SLIDE -->
-            <section class="slide-title">
-                <div class="slide-title-content">
-                    <div class="logo-anchor">ARCHIFICIALS</div>
-                    <h1>AI Readiness Assessment</h1>
-                    <p class="subtitle">{{CLIENT_NAME}}</p>
-                    <div class="meta">
-                        <div class="meta-item">
-                            <span class="meta-label">Report Generated:</span> {{DATE}}
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">Status:</span> Confidential
-                        </div>
-                    </div>
-                </div>
-                <aside class="notes">
-                    Title slide. {{CLIENT_NAME}} AI readiness assessment report.
-                </aside>
-            </section>
-            
-            <!-- ASSESSMENT OVERVIEW DIVIDER -->
-            <section class="slide-divider">
-                <h1>Assessment Overview</h1>
-                <p>Your current AI readiness across 4 strategic dimensions</p>
-            </section>
-            
-            <!-- DIMENSION RADAR CHART -->
-            <section class="slide-content">
-                <h2>AI Readiness Dimensions</h2>
-                <div class="chart-container">
-                    <div id="dimension-radar" class="plotly-graph-div"></div>
-                    <div class="chart-source">Data source: Assessment questionnaire analysis</div>
-                </div>
-            </section>
-            
-            <!-- DIMENSION SCORES DETAIL -->
-            <section class="slide-content">
-                <h2>Dimensional Breakdown</h2>
-                <div class="grid-2">
-                    <div class="score-card">
-                        <div class="score-label">Operational Efficiency</div>
-                        <div class="score-value" id="score-operational">68</div>
-                        <div class="score-tier">Building Foundations</div>
-                    </div>
-                    <div class="score-card">
-                        <div class="score-label">Client/Student Acquisition</div>
-                        <div class="score-value" id="score-acquisition">52</div>
-                        <div class="score-tier">Building Foundations</div>
-                    </div>
-                    <div class="score-card">
-                        <div class="score-label">Digital Visibility</div>
-                        <div class="score-value" id="score-digital">45</div>
-                        <div class="score-tier">Building Foundations</div>
-                    </div>
-                    <div class="score-card">
-                        <div class="score-label">Practice/Institutional Readiness</div>
-                        <div class="score-value" id="score-readiness">71</div>
-                        <div class="score-tier">Accelerating</div>
-                    </div>
-                </div>
-            </section>
-            
-            <!-- MARKET ANALYSIS DIVIDER -->
-            <section class="slide-divider">
-                <h1>Market Context</h1>
-                <p>Industry trends and competitive landscape analysis</p>
-            </section>
-            
-            <!-- MARKET ANALYSIS PLACEHOLDER -->
-            <section class="slide-content">
-                <h2>Market Opportunity</h2>
-                <p>Placeholder: Market analysis research from Session 2.</p>
-                <div class="chart-container">
-                    <div id="market-comparison" class="plotly-graph-div"></div>
-                    <div class="chart-source">Data source: {{DATE}} market research</div>
-                </div>
-            </section>
-            
-            <!-- DEPLOYMENT SCENARIOS DIVIDER -->
-            <section class="slide-divider">
-                <h1>Implementation Roadmap</h1>
-                <p>4 deployment scenarios tailored to your needs</p>
-            </section>
-            
-            <!-- SCENARIOS OVERVIEW -->
-            <section class="slide-content">
-                <h2>Deployment Scenarios</h2>
-                <p>We've developed 4 implementation approaches based on your readiness profile:</p>
-                <div class="grid-2">
-                    <div class="score-card">
-                        <div class="score-label">Scenario A</div>
-                        <p><strong>Rapid MVP</strong></p>
-                        <p style="font-size: 16px; color: var(--text-light);">Fast market entry, minimal overhead</p>
-                    </div>
-                    <div class="score-card">
-                        <div class="score-label">Scenario B</div>
-                        <p><strong>Balanced Growth</strong></p>
-                        <p style="font-size: 16px; color: var(--text-light);">Moderate scope, measured scaling</p>
-                    </div>
-                    <div class="score-card">
-                        <div class="score-label">Scenario C</div>
-                        <p><strong>Enterprise Scale</strong></p>
-                        <p style="font-size: 16px; color: var(--text-light);">Full integration, comprehensive platform</p>
-                    </div>
-                    <div class="score-card">
-                        <div class="score-label">Scenario D</div>
-                        <p><strong>Custom Build</strong></p>
-                        <p style="font-size: 16px; color: var(--text-light);">Fully tailored to your vision</p>
-                    </div>
-                </div>
-            </section>
-            
-            <!-- IMPLEMENTATION TIMELINE -->
-            <section class="slide-content">
-                <h2>Expected Timeline &amp; Costs</h2>
-                <div class="chart-container">
-                    <div id="implementation-gantt" class="plotly-graph-div"></div>
-                    <div class="chart-source">Illustrative timeline based on scenario selection</div>
-                </div>
-            </section>
-            
-            <!-- NEXT STEPS DIVIDER -->
-            <section class="slide-divider">
-                <h1>Next Steps</h1>
-                <p>Let's discuss which scenario aligns with your vision</p>
-            </section>
-            
-            <!-- NEXT STEPS CTA -->
-            <section class="slide-content">
-                <h2>Ready to Move Forward?</h2>
-                <p>Based on your assessment results, we recommend scenario <strong>B: Balanced Growth</strong> as the optimal starting point.</p>
-                <div style="margin-top: 40px;">
-                    <p><strong>Next Actions:</strong></p>
-                    <ul style="text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;">
-                        <li>Schedule a strategy session with our team</li>
-                        <li>Receive detailed proposal document</li>
-                        <li>Discuss project timeline &amp; investment</li>
-                        <li>Define success metrics &amp; milestones</li>
-                    </ul>
-                </div>
-                <div style="margin-top: 40px;">
-                    <button class="cta-button">Schedule Consultation</button>
-                    <button class="cta-button secondary">Download Proposal</button>
-                </div>
-            </section>
-            
-            <!-- CLOSING SLIDE -->
-            <section class="slide-title">
-                <div class="slide-title-content">
-                    <h1>Thank You</h1>
-                    <p class="subtitle">Confidential — Prepared for {{CLIENT_NAME}} by Archificials</p>
-                    <div class="meta" style="border-top: 1px solid rgba(255,255,255,0.2); margin-top: 40px; padding-top: 20px;">
-                        <div class="meta-item">
-                            <span class="meta-label">Questions?</span> hello@archificials.com
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">Website:</span> archificials.com
-                        </div>
-                    </div>
-                </div>
-            </section>
-            
-            <!-- SESSION-2+ PLACEHOLDER SLIDES -->
             {{SLIDES_HTML}}
         </div>
     </div>
@@ -670,20 +710,17 @@
         Reveal.initialize({
             width: 1920,
             height: 1080,
-            margin: 0.1,
+            margin: 0.04,
             minScale: 0.2,
             maxScale: 2.0,
             hash: true,
             keyboard: true,
             center: true,
-            transition: 'fade',
+            transition: 'slide',
             transitionSpeed: 'default',
-            slideNumber: true,
+            slideNumber: 'c/t',
             overview: true
         });
-        
-        // Show slide number in corner
-        document.querySelector('.slide-number').style.display = 'block';
     </script>
     
     <!-- Chart Data & Population -->

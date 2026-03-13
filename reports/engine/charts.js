@@ -53,7 +53,7 @@ export const PLOTLY_CONFIG = {
  * Shows 4 dimension scores in a spider/radar chart
  */
 export function createDimensionRadarChart(data) {
-    // data = { operational: 68, acquisition: 52, digital: 45, readiness: 71 }
+    // data = { operational: 68, acquisition: 52, digital: 45, practice_readiness: 71 }
     
     const dimensions = [
         'Operational\nEfficiency',
@@ -66,7 +66,7 @@ export function createDimensionRadarChart(data) {
         data.operational || 68,
         data.acquisition || 52,
         data.digital || 45,
-        data.readiness || 71
+        data.practice_readiness || 71
     ];
     
     const plotData = [
@@ -118,7 +118,7 @@ export function createDimensionRadarChart(data) {
  */
 export function createDimensionBarChart(data) {
     const dimensions = ['Operational Efficiency', 'Client/Student Acquisition', 'Digital Visibility', 'Practice/Institutional Readiness'];
-    const values = [data.operational || 68, data.acquisition || 52, data.digital || 45, data.readiness || 71];
+    const values = [data.operational || 68, data.acquisition || 52, data.digital || 45, data.practice_readiness || 71];
     
     // Determine tier colors based on value
     const tierThresholds = {
@@ -172,7 +172,7 @@ export function createDimensionBarChart(data) {
  */
 export function createTierGaugeChart(data) {
     const overallScore = Math.round(
-        (data.operational + data.acquisition + data.digital + data.readiness) / 4
+        (data.operational + data.acquisition + data.digital + data.practice_readiness) / 4
     );
     
     // Determine tier label
@@ -431,14 +431,27 @@ export function createCostComparisonChart(data) {
             <tbody>
     `;
     
-    Object.keys(scenarios).forEach(key => {
+    const scenarioOrder = ['scenarioA', 'scenarioB', 'scenarioC', 'scenarioD', 'scenarioE', 'scenarioF', 'A', 'B', 'C', 'D', 'E', 'F'];
+    const sortedKeys = Object.keys(scenarios).sort((a, b) => {
+        const ai = scenarioOrder.indexOf(a);
+        const bi = scenarioOrder.indexOf(b);
+        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
+
+    sortedKeys.forEach(key => {
         const scenario = scenarios[key];
+        if (!scenario || !scenario.label) return;
+        const isRecommended = key === 'scenarioC' || key === 'C';
+        const costRaw = scenario.costs?.totalYear1 || scenario.costs?.total || scenario.cost || '';
+        const costDisplay = typeof costRaw === 'number' ? `$${(costRaw / 1000).toFixed(0)}K` : costRaw;
+        const timelineDisplay = typeof scenario.timeline === 'string' ? scenario.timeline : (scenario.timeline?.total || '');
+        const roiDisplay = scenario.roiProjection?.estimate || scenario.roiProjection?.paybackPeriod || scenario.roi_month || '';
         tableHTML += `
-            <tr style="background: ${key === 'B' ? 'rgba(226, 115, 8, 0.05)' : 'transparent'}; border-bottom: 1px solid #e0e0e0;">
-                <td style="padding: 12px; font-weight: 600;">${scenario.label}</td>
-                <td style="padding: 12px; text-align: right;">$${(scenario.cost / 1000).toFixed(0)}K</td>
-                <td style="padding: 12px;">${scenario.timeline}</td>
-                <td style="padding: 12px; text-align: right; color: #28a745; font-weight: 600;">Month ${scenario.roi_month}</td>
+            <tr style="background: ${isRecommended ? 'rgba(226, 115, 8, 0.08)' : 'transparent'}; border-bottom: 1px solid #e0e0e0;">
+                <td style="padding: 10px 12px; font-weight: 600;">${isRecommended ? '★ ' : ''}${scenario.label}</td>
+                <td style="padding: 10px 12px; text-align: right;">${costDisplay}</td>
+                <td style="padding: 10px 12px;">${timelineDisplay}</td>
+                <td style="padding: 10px 12px; text-align: right; color: #28a745; font-weight: 600;">${roiDisplay}</td>
             </tr>
         `;
     });
@@ -465,7 +478,7 @@ function initializeCharts() {
         operational: 68,
         acquisition: 52,
         digital: 45,
-        readiness: 71
+        practice_readiness: 71
     };
     
     // 1. Dimension Radar

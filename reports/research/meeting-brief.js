@@ -1,38 +1,37 @@
 /**
- * Meeting Brief Prompt Builder
- * 
- * Generates an internal brief for Biel before the client meeting.
- * This is NOT client-facing - it's strategy, preparation, and talking points.
- * 
- * Includes:
- * - Client background & pain points
- * - Conversation starters
- * - Recommended scenario to lead with
- * - Anticipated objections and responses
- * - Competitive pressure points
- * - Budget sensitivity assessment
- * - Recommended agenda
+ * Meeting Brief Prompt Builder — v2 (Expert-Grade)
+ *
+ * Generates an internal meeting brief for Biel before the client meeting.
+ * This is NOT client-facing — it's strategy, preparation, and talking points.
+ *
+ * Now includes:
+ * - Deeper pain point analysis tied to specific scores
+ * - Scenario E & F awareness (client acquisition, AEO/GEO)
+ * - Pre-meeting preparation checklist
+ * - Post-meeting follow-up plan
+ * - Discovery questions tailored to assessment gaps
+ *
+ * Quality baseline: client-a strategic implications sections
  */
+
+const { ARCHIFICIALS_POSITIONING } = require('./market-analysis.js');
 
 /**
  * Build prompt for Claude to generate meeting brief
- * @param {Object} assessmentData - Assessment responses
- * @param {Object} marketAnalysis - Output from market analysis Claude call
- * @param {Object} deploymentScenarios - Output from deployment scenarios Claude call
- * @returns {Object} { system, user } prompt object
  */
 function buildMeetingBriefPrompt(assessmentData, marketAnalysis, deploymentScenarios) {
-  const industry = assessmentData.inst_type || assessmentData.firm_type || 'higher education';
+  const vertical = assessmentData.vertical || 'law-firm';
+  const industry = assessmentData.inst_type || assessmentData.firm_type || 'Organization';
   const orgName = assessmentData.inst_name || assessmentData.firm_name || 'Organization';
   const orgSize = assessmentData.inst_size || assessmentData.firm_size || 'medium';
-  
-  // Extract key insights from assessment
+
   const contactName = assessmentData.contact_name || 'Contact';
   const contactTitle = assessmentData.contact_title || 'Unknown role';
+  const contactEmail = assessmentData.contact_email || '';
   const investmentLevel = assessmentData.investment_question || 'unknown';
   const urgency = assessmentData.urgency_question || 'unknown';
-  
-  // Extract scores
+  const openEndedResponse = assessmentData.open_ended_response || '';
+
   const scores = {
     operational: assessmentData.scores?.operational || 50,
     acquisition: assessmentData.scores?.acquisition || 50,
@@ -40,153 +39,254 @@ function buildMeetingBriefPrompt(assessmentData, marketAnalysis, deploymentScena
     practice_readiness: assessmentData.scores?.practice_readiness || 50
   };
   const overallScore = Math.round((scores.operational + scores.acquisition + scores.digital + scores.practice_readiness) / 4);
-  
-  const systemPrompt = `You are Archificials' head strategist preparing a concise, actionable meeting brief for Biel before a client call. This brief is for internal use only and should be candid, strategic, and tactical.
 
-Your goal is to help Biel:
-1. Understand this client's specific pain points and readiness level
-2. Approach the meeting with confidence and a clear narrative
-3. Anticipate objections and have strong responses ready
-4. Recommend which scenario to lead with and why
-5. Manage expectations around investment and timeline
-6. Position Archificials as the obvious choice
+  // Score interpretation helpers
+  const weakestDimension = Object.entries(scores).sort((a, b) => a[1] - b[1])[0];
+  const strongestDimension = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
 
-Be concise, direct, and strategic. Assume Biel is an experienced sales leader who wants insights, not lengthy explanations.`;
+  // Extract market and scenario context
+  let marketContext = 'Market analysis available from research phase.';
+  if (marketAnalysis && typeof marketAnalysis === 'object' && !marketAnalysis.raw) {
+    marketContext = `
+- Market Overview: ${marketAnalysis.executiveSummary?.marketSize || 'Large and growing rapidly'}
+- Adoption Trend: ${marketAnalysis.executiveSummary?.adoptionTrend || 'Accelerating'}
+- Competitor Activity: ${marketAnalysis.competitorLandscape?.peerActivity || 'Peers are actively deploying AI'}
+- Key Gap: ${marketAnalysis.competitorLandscape?.midMarketGap || 'Mid-market organizations are underserved'}
+- AEO/GEO Opportunity: ${marketAnalysis.aiSearchRevolution?.urgencyCase || 'AI search is transforming discovery'}`;
+  }
 
-  const userPrompt = `Prepare a concise meeting brief for Biel before the call with "${orgName}".
+  let scenarioContext = '4-6 deployment scenarios designed.';
+  if (deploymentScenarios && typeof deploymentScenarios === 'object' && !deploymentScenarios.raw) {
+    const ds = deploymentScenarios;
+    const recScenario = ds.scenarioC || {};
+    scenarioContext = `
+- Scenario A (Off-the-Shelf): ${ds.scenarioA?.costs?.totalYear1 || 'Estimated'} Year 1
+- Scenario B (Custom Build): ${ds.scenarioB?.costs?.totalYear1 || 'Estimated'} Year 1
+- Scenario C (Hybrid - RECOMMENDED): ${ds.scenarioC?.costs?.totalYear1 || 'Estimated'} Year 1
+- Scenario D (Transformation): ${ds.scenarioD?.costs?.totalYear1 || 'Estimated'} Year 1
+- Scenario E (Acquisition & SEO): ${ds.scenarioE?.costs?.totalYear1 || 'Estimated'} Year 1
+- Scenario F (AEO & GEO): ${ds.scenarioF?.costs?.totalYear1 || 'Estimated'} Year 1
+- Recommended Lead: Scenario C (Hybrid) — immediate wins + long-term advantage
+- Fit Assessment: ${recScenario.fitAssessment || 'Best fit for most organizations'}`;
+  }
 
-CLIENT PROFILE:
+  const engagementTiersRef = ARCHIFICIALS_POSITIONING.engagementTiers.map(t =>
+    `- ${t.tier}: ${t.price} (${t.duration})`
+  ).join('\n');
+
+  const systemPrompt = `You are Archificials' head strategist preparing a comprehensive, candid meeting brief for Biel before a client call. This brief is INTERNAL ONLY — be direct, strategic, and tactical.
+
+CRITICAL QUALITY STANDARDS:
+- This is a strategy document for an experienced sales leader, not a generic template.
+- Be SPECIFIC. Reference the client's actual scores, their stated investment appetite, and their urgency signals.
+- Be CANDID. If their scores suggest they'll be resistant to change, say so and recommend how to handle it.
+- Be TACTICAL. Give Biel exact opening lines, exact questions to ask, exact phrases for handling objections.
+- Include discovery questions that probe the GAPS revealed by their assessment scores.
+- The goal: Biel walks into this meeting feeling like he already knows the client. He has a clear narrative, a plan B, and confidence.
+- Include a pre-meeting preparation checklist and a post-meeting follow-up plan.
+
+Output only valid JSON with the structure specified.`;
+
+  const userPrompt = `Prepare a comprehensive meeting brief for Biel's call with "${orgName}".
+
+═══════════════════════════════════════════════
+CLIENT PROFILE
+═══════════════════════════════════════════════
 - Organization: ${orgName} (${orgSize} ${industry})
 - Contact: ${contactName}, ${contactTitle}
+- Email: ${contactEmail || 'Not provided'}
 - Assessment Score: ${overallScore}/100 overall readiness
-  - Operational Efficiency: ${scores.operational}/100
-  - Acquisition Focus: ${scores.acquisition}/100
-  - Digital Visibility: ${scores.digital}/100
-  - Readiness: ${scores.practice_readiness}/100
+  - Operational Efficiency: ${scores.operational}/100 ${scores.operational < 50 ? '⚠ WEAK' : scores.operational < 70 ? '⬆ MODERATE' : '✓ STRONG'}
+  - Client/Student Acquisition: ${scores.acquisition}/100 ${scores.acquisition < 50 ? '⚠ WEAK' : scores.acquisition < 70 ? '⬆ MODERATE' : '✓ STRONG'}
+  - Digital Visibility: ${scores.digital}/100 ${scores.digital < 50 ? '⚠ WEAK' : scores.digital < 70 ? '⬆ MODERATE' : '✓ STRONG'}
+  - Practice/Institutional Readiness: ${scores.practice_readiness}/100 ${scores.practice_readiness < 50 ? '⚠ WEAK' : scores.practice_readiness < 70 ? '⬆ MODERATE' : '✓ STRONG'}
+- Weakest dimension: ${weakestDimension[0]} (${weakestDimension[1]}/100)
+- Strongest dimension: ${strongestDimension[0]} (${strongestDimension[1]}/100)
 
-CLIENT SIGNALS:
+═══════════════════════════════════════════════
+CLIENT SIGNALS
+═══════════════════════════════════════════════
 - Investment appetite: ${investmentLevel}
 - Urgency indicated: ${urgency}
+${openEndedResponse ? `- Open-ended response: "${openEndedResponse}"` : ''}
 
-MARKET INTELLIGENCE:
-${marketAnalysis ? `- Industry context: ${marketAnalysis.industryOverview?.summary?.substring(0, 300) || 'From market research'}` : ''}
-${marketAnalysis?.competitorLandscape?.examples?.length ? `- Competitor activity: ${marketAnalysis.competitorLandscape.examples.length} peers identified as active with AI` : ''}
+═══════════════════════════════════════════════
+MARKET INTELLIGENCE
+═══════════════════════════════════════════════
+${marketContext}
 
-DEPLOYMENT OPTIONS AVAILABLE:
-${deploymentScenarios ? `- 4 scenarios have been designed (A: Off-the-shelf, B: Custom, C: Hybrid, D: Transformation)` : ''}
+═══════════════════════════════════════════════
+DEPLOYMENT SCENARIOS AVAILABLE
+═══════════════════════════════════════════════
+${scenarioContext}
 
-GENERATE A MEETING BRIEF WITH:
+═══════════════════════════════════════════════
+ARCHIFICIALS ENGAGEMENT TIERS
+═══════════════════════════════════════════════
+${engagementTiersRef}
+Entry Point Recommendation: Discovery & Strategy ($7,500-$15,000)
 
-1. **Executive Summary** (2-3 sentences)
-   - Who they are, their maturity level, and what they need
+═══════════════════════════════════════════════
+BRIEF REQUIREMENTS
+═══════════════════════════════════════════════
 
-2. **Pain Points & Motivation**
-   - What are their 3-4 core pain points based on assessment scores?
-   - What's driving urgency? (or lack thereof)
-   - Who in their org cares most about each pain point?
+1. EXECUTIVE SUMMARY (3-4 sentences)
+   - Who they are, their maturity level, and what they need most urgently
+   - What their scores tell us about their readiness and biggest gaps
+   - The strategic opportunity for Archificials
 
-3. **Competitive Positioning**
-   - Are they under pressure from peers/competitors?
-   - What AI initiatives are peer organizations running?
-   - Frame Archificials' advantage
+2. PAIN POINTS & MOTIVATION (4-5 pain points)
+   - Each pain point must reference a SPECIFIC score dimension and what it implies
+   - Include who in their organization cares most about each pain point
+   - Rate severity 1-10 based on their actual scores
+   - Include what's driving urgency (or explain their lack of urgency and how to create it)
 
-4. **Recommended Conversation Arc**
-   - Opening: Hook (relate to their specific pain point)
-   - Middle: Validate their situation with market data
-   - Present: [Recommended scenario - see below] as the natural fit
-   - Close: Next steps and investment range
+3. COMPETITIVE POSITIONING
+   - Are they under competitive pressure? What are peers doing?
+   - How to frame Archificials' unique advantage for THIS client
+   - Specific talking points about vendor-agnostic approach and mid-market focus
 
-5. **Recommended Lead Scenario**
-   - Which of A/B/C/D should Biel lead with? Why?
-   - What's the hook for THIS organization?
-   - How does it address their pain points?
-   - Be explicit about why this scenario fits them
+4. PRE-MEETING PREPARATION (before the call)
+   - 3-4 specific things Biel should research or prepare
+   - Look up recent news about ${orgName}
+   - Review relevant compliance/regulatory updates
+   - Decide which scenario to open with based on their scores
 
-6. **Alternative Scenarios**
-   - If they push back on cost: Fall back to [which scenario]
-   - If they push back on timeline: Fall back to [which scenario]
-   - If they're aggressive: Upgrade to [which scenario]
+5. RECOMMENDED CONVERSATION ARC (60 minutes)
+   - Opening hook (relate to their SPECIFIC weakest score area)
+   - Discovery questions (8-10 targeted questions based on assessment gaps)
+   - Market validation (use competitor data to create urgency)
+   - Scenario presentation (lead with recommended, have fallbacks ready)
+   - Close (next steps, investment range, timeline)
 
-7. **Likely Objections & Responses**
-   - Objection 1 (common for ${industry}): Response with proof point
-   - Objection 2 (based on their readiness): Response with data
-   - Objection 3 (budget or timeline): Response with flexibility
-   - Objection 4 (competitive concern): Response with market advantage
+6. RECOMMENDED LEAD SCENARIO
+   - Which of A/B/C/D/E/F should Biel lead with? Why?
+   - What's the opening hook for THIS organization?
+   - How does it address their specific pain points?
+   - What's the expected investment range?
 
-8. **Budget & Investment Positioning**
-   - Their indicated budget: ${investmentLevel} (interpret this)
-   - Recommended investment range for lead scenario: $X-Y in year 1, Z for implementation
+7. ALTERNATIVE SCENARIOS (fallback strategy)
+   - If they push back on COST → fall back to [which scenario] and how to position it
+   - If they push back on TIMELINE → fall back to [which scenario]
+   - If they want to FOCUS ON GROWTH → pivot to Scenario E or F
+   - If they're AMBITIOUS → upgrade to [which scenario]
+
+8. LIKELY OBJECTIONS & RESPONSES (5-6 objections)
+   - Each objection should be realistic for a ${orgSize} ${industry}
+   - Each response must include a specific proof point, data point, or reframe
+   - Include a backup response if they push back further
+   - Common objections: budget constraints, internal skepticism, security/compliance concerns, timeline, "we're already using ChatGPT"
+
+9. BUDGET & INVESTMENT POSITIONING
+   - Interpret their stated investment appetite: "${investmentLevel}"
+   - Recommended entry point: Discovery & Strategy engagement
+   - How to position the price (value framing, not cost framing)
+   - ROI messaging with quantified payback period
    - Payment flexibility options to mention
-   - ROI messaging: Quantify payback period
 
-9. **Team & Staffing**
-   - Who on their team should be involved going forward?
-   - Who has decision authority?
-   - Who are champions vs. skeptics?
+10. DISCOVERY QUESTIONS (10-12 targeted questions)
+    - Questions specifically designed to probe the gaps their scores reveal
+    - Each question should have a strategic purpose (why you're asking)
+    - Questions about decision-making structure, budget process, existing technology
+    - Questions that naturally lead into scenario presentation
 
-10. **Meeting Agenda (60 minutes suggested)**
-    - 0-5min: Welcome, scope setting
-    - 5-10min: Discovery question about [their main pain]
-    - 10-20min: Market context and what peers are doing
-    - 20-35min: Assessment results and scenarios
-    - 35-50min: Deep dive on recommended scenario
-    - 50-60min: Next steps, timeline, and investment
+11. POST-MEETING FOLLOW-UP PLAN
+    - Email template outline (within 24-48 hours)
+    - What to mirror back from the conversation
+    - Recommended next step: Discovery Engagement proposal
+    - Follow-up timeline (5-7 business days)
+
+12. SUCCESS CRITERIA
+    - What constitutes a successful meeting (3-4 measurable outcomes)
+    - The meeting is NOT about closing — it's about earning the right to send a proposal
 
 OUTPUT FORMAT - Valid JSON only:
 {
-  "executiveSummary": "string",
+  "executiveSummary": "3-4 sentences summarizing the client, their readiness, and the opportunity",
   "painPoints": [
     {
-      "point": "pain point",
-      "severity": "1-10 based on scores",
-      "affectedPerson": "who cares about this",
-      "reference": "assessment data showing this"
+      "point": "specific pain point",
+      "dimension": "which score dimension this relates to",
+      "score": "the actual score",
+      "severity": "1-10",
+      "affectedPerson": "who in the org cares most",
+      "implication": "what this score means operationally"
     }
   ],
   "competitiveContext": {
-    "peerActivity": "what peers are doing",
-    "urgency": "why they need to act soon",
-    "archificialsAdvantage": "what we offer they don't"
+    "peerActivity": "what peers are doing with AI",
+    "urgency": "why they need to act soon (or how to create urgency if they don't feel it)",
+    "archificialsAdvantage": "specific advantage for THIS client"
+  },
+  "preMeetingChecklist": [
+    {
+      "task": "what to do",
+      "why": "why it matters"
+    }
+  ],
+  "conversationArc": {
+    "opening": "specific opening hook tied to their weakest score",
+    "discoveryPhase": "how to structure the discovery conversation",
+    "marketValidation": "how to use market data to create urgency",
+    "scenarioPresentation": "how to present the recommended scenario",
+    "close": "how to close toward next steps"
   },
   "recommendedScenario": {
-    "scenario": "A/B/C/D label",
-    "reasoning": "why this specific client fits this scenario",
-    "hook": "how to present it to them",
+    "scenario": "A/B/C/D/E/F label",
+    "reasoning": "why this specific client fits this scenario based on their scores",
+    "hook": "the opening pitch for this scenario",
+    "investmentRange": "expected investment",
     "expectedReaction": "how they'll likely respond"
   },
   "alternatives": [
     {
-      "if": "condition (cost, timeline, ambition)",
-      "fallback": "scenario A/B/C/D",
-      "pitch": "how to position it"
+      "trigger": "condition (cost pushback, timeline concern, growth focus, ambition)",
+      "fallback": "scenario label",
+      "pitch": "how to position the fallback"
     }
   ],
   "objections": [
     {
       "objection": "what they'll likely say",
-      "response": "Biel's response with proof/data",
+      "response": "Biel's response with specific proof/data",
       "backup": "if they push back further"
     }
   ],
   "investment": {
-    "indicatedBudget": "${investmentLevel}",
-    "interpretation": "what this likely means for them",
-    "recommendedRange": "$X-Y first year, $Z implementation",
+    "statedAppetite": "${investmentLevel}",
+    "interpretation": "what this likely means for their budget",
+    "recommendedEntry": "Discovery & Strategy ($7,500-$15,000)",
+    "fullEngagementRange": "range if they commit to recommended scenario",
     "paybackPeriod": "estimated months to ROI",
-    "roiMessage": "quantified benefit summary"
+    "roiMessage": "quantified benefit to use in conversation",
+    "flexibilityOptions": "payment flexibility to mention if needed"
   },
-  "staffing": {
-    "champions": ["person 1", "person 2"],
-    "skeptics": ["person 1"],
-    "decisionMaker": "name/title",
-    "teamToEngage": "who else to involve"
+  "discoveryQuestions": [
+    {
+      "question": "the question to ask",
+      "purpose": "why you're asking this (strategic intent)",
+      "expectedInsight": "what the answer reveals"
+    }
+  ],
+  "postMeetingPlan": {
+    "emailOutline": "what the follow-up email should cover",
+    "mirrorBack": "reflect their stated pain points back to them",
+    "proposedNextStep": "Discovery & Strategy engagement proposal",
+    "followUpTimeline": "when to follow up",
+    "materialsToSend": ["what documents/scenarios to attach"]
   },
+  "successCriteria": [
+    "measurable outcome 1",
+    "measurable outcome 2",
+    "measurable outcome 3",
+    "measurable outcome 4"
+  ],
   "meetingAgenda": [
     {
       "timeSlot": "0-5min",
       "topic": "topic",
       "goal": "what to accomplish",
-      "talkingPoints": ["point1", "point2"]
+      "talkingPoints": ["point 1", "point 2"]
     }
   ]
 }`;
