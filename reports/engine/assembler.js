@@ -674,6 +674,163 @@ const TEMPLATE_HTML = `<!DOCTYPE html>
         }
 
         /* ============================================
+           Data-Dense Slide Components
+           ============================================ */
+        .section-card {
+            background: #f1f3f5;
+            border-left: 3px solid var(--accent);
+            padding: 14px 16px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+        .section-card h4 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+        .section-card p {
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text);
+            margin: 0;
+        }
+
+        .tool-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 14px 16px;
+            text-align: left;
+        }
+        .tool-card .tool-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 2px;
+        }
+        .tool-card .tool-price {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 6px;
+        }
+        .tool-card .tool-tag {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .tool-card .tool-desc {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+
+        .strength-item, .weakness-item {
+            font-size: 13px;
+            line-height: 1.5;
+            padding: 3px 0 3px 18px;
+            position: relative;
+            text-align: left;
+        }
+        .strength-item::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #2e7d32;
+            font-weight: 700;
+        }
+        .weakness-item::before {
+            content: '—';
+            position: absolute;
+            left: 0;
+            color: #999;
+            font-weight: 700;
+        }
+
+        .compact-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .compact-table th {
+            background: var(--primary);
+            color: white;
+            padding: 8px 10px;
+            text-align: left;
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .compact-table td {
+            padding: 7px 10px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: top;
+        }
+        .compact-table tr:nth-child(even) td {
+            background: #f8f9fa;
+        }
+        .compact-table .accent-text {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .stat-highlight {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--accent);
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+        .stat-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .stat-box {
+            text-align: center;
+            padding: 10px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .scenario-enriched .tool-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+        }
+        .scenario-enriched .tool-row:last-child {
+            border-bottom: none;
+        }
+        .scenario-enriched .roi-highlight {
+            background: var(--accent);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        /* ============================================
            Reveal.js Print/PDF Overrides
            ============================================ */
         @media print {
@@ -959,6 +1116,195 @@ function insightSlide(title, text, attribution = '') {
 }
 
 // ---------------------------------------------------------------------------
+// Utility helpers
+// ---------------------------------------------------------------------------
+
+function truncate(str, maxLen = 120) {
+    if (!str || str.length <= maxLen) return str || '';
+    return str.slice(0, maxLen - 1) + '…';
+}
+
+function parseStat(text) {
+    if (!text) return null;
+    const m = String(text).match(/(\$[\d,.]+\s*(?:billion|million|B|M)?|[\d,.]+%|[\d,.]+x|\d[\d,.]*\s*(?:billion|million))/i);
+    return m ? m[1] : null;
+}
+
+function parseCostStr(str) {
+    if (typeof str === 'number') return str;
+    if (!str) return 0;
+    return parseFloat(String(str).replace(/[$,]/g, '')) || 0;
+}
+
+// ---------------------------------------------------------------------------
+// Data-dense slide templates
+// ---------------------------------------------------------------------------
+
+/**
+ * Table slide: header row + data rows, max 8 rows
+ */
+function tableSlide(title, headers, rows, subtitle = '') {
+    const safeRows = (rows || []).slice(0, 8);
+    const headerHtml = headers.map(h => `<th>${esc(h)}</th>`).join('');
+    const rowsHtml = safeRows.map(row =>
+        `<tr>${row.map((cell, i) => `<td${i === headers.length - 1 ? ' class="accent-text"' : ''}>${cell}</td>`).join('')}</tr>`
+    ).join('');
+
+    return `
+<section class="slide-content">
+    <h2>${esc(title)}</h2>
+    ${subtitle ? `<p style="font-size:14px; color:var(--text-light); margin-bottom:12px;">${subtitle}</p>` : ''}
+    <table class="compact-table">
+        <thead><tr>${headerHtml}</tr></thead>
+        <tbody>${rowsHtml}</tbody>
+    </table>
+</section>
+`;
+}
+
+/**
+ * Multi-section slide: 2-4 content blocks in grid
+ */
+function multiSectionSlide(title, sections, cols = 2) {
+    const safeSections = (sections || []).slice(0, 4);
+    const gridClass = cols === 3 ? 'grid-3' : 'grid-2';
+    const cardsHtml = safeSections.map(s => `
+        <div class="section-card">
+            <h4>${esc(s.title || '')}</h4>
+            <p>${truncate(s.content || s.text || '', 280)}</p>
+        </div>
+    `).join('');
+
+    return `
+<section class="slide-content">
+    <h2>${esc(title)}</h2>
+    <div class="${gridClass}" style="margin-top:16px;">
+        ${cardsHtml}
+    </div>
+</section>
+`;
+}
+
+/**
+ * Metric banner slide: 3-5 large stat numbers + optional description
+ */
+function metricBannerSlide(title, metrics, description = '') {
+    const safeMetrics = (metrics || []).slice(0, 5);
+    const cols = safeMetrics.length <= 3 ? safeMetrics.length : (safeMetrics.length <= 4 ? 2 : 3);
+    const gridClass = cols === 3 ? 'grid-3' : 'grid-2';
+    const metricsHtml = safeMetrics.map(m => `
+        <div class="stat-box">
+            <div class="stat-highlight">${m.value || '—'}</div>
+            <div class="stat-label">${esc(m.label || '')}</div>
+        </div>
+    `).join('');
+
+    return `
+<section class="slide-content">
+    <h2>${esc(title)}</h2>
+    <div class="${gridClass}" style="margin-top:20px;">
+        ${metricsHtml}
+    </div>
+    ${description ? `<p style="font-size:14px; color:var(--text-light); margin-top:16px; text-align:center;">${truncate(description, 200)}</p>` : ''}
+</section>
+`;
+}
+
+/**
+ * Tool detail slide: 2-3 rich tool cards with pricing/strengths/weaknesses
+ */
+function toolDetailSlide(title, tools) {
+    const safeTools = (tools || []).slice(0, 3);
+    const cardsHtml = safeTools.map(t => {
+        const strengths = (t.strengths || []).slice(0, 3).map(s => `<div class="strength-item">${esc(s)}</div>`).join('');
+        const weaknesses = (t.weaknesses || []).slice(0, 2).map(w => `<div class="weakness-item">${esc(w)}</div>`).join('');
+        return `
+        <div class="tool-card">
+            <div class="tool-name">${esc(t.name || '')}</div>
+            <div class="tool-price">${esc(t.pricing || t.price || '')}</div>
+            ${t.relevance ? `<div class="tool-desc">${truncate(t.relevance, 100)}</div>` : ''}
+            ${strengths ? `<div style="margin-top:6px;">${strengths}</div>` : ''}
+            ${weaknesses ? `<div style="margin-top:4px;">${weaknesses}</div>` : ''}
+        </div>`;
+    }).join('');
+
+    const gridClass = safeTools.length === 3 ? 'grid-3' : 'grid-2';
+    return `
+<section class="slide-content">
+    <h2>${esc(title)}</h2>
+    <div class="${gridClass}" style="margin-top:16px;">
+        ${cardsHtml}
+    </div>
+</section>
+`;
+}
+
+/**
+ * Enriched scenario slide: replaces the sparse scenarioSlide
+ * Shows tool cost breakdown, strengths/weaknesses with icons, ROI highlight
+ */
+function enrichedScenarioSlide(letter, scenario) {
+    if (!scenario) return '';
+
+    // Build tool/track list
+    const tools = scenario.recommendedTools || scenario.tools || [];
+    const tracks = scenario.tracks || [];
+    const phases = scenario.phases || [];
+
+    // Left side: philosophy + tools/tracks + timeline
+    let toolSection = '';
+    if (Array.isArray(tools) && tools.length > 0) {
+        const toolRows = tools.slice(0, 5).map(t => {
+            if (typeof t === 'string') return `<div class="tool-row"><span>${esc(t)}</span></div>`;
+            return `<div class="tool-row"><span>${esc(t.name || t.tool || '')}</span><span class="accent-text">${esc(t.cost || t.pricing || t.price || '')}</span></div>`;
+        }).join('');
+        toolSection = `<div style="margin-top:10px;"><h4 style="font-size:13px; color:var(--text-light); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Recommended Tools</h4>${toolRows}</div>`;
+    } else if (Array.isArray(tracks) && tracks.length > 0) {
+        const trackRows = tracks.slice(0, 4).map(t => {
+            if (typeof t === 'string') return `<div class="tool-row"><span>${esc(t)}</span></div>`;
+            return `<div class="tool-row"><span>${esc(t.name || t.track || '')}</span><span class="accent-text">${esc(t.timeline || t.duration || '')}</span></div>`;
+        }).join('');
+        toolSection = `<div style="margin-top:10px;"><h4 style="font-size:13px; color:var(--text-light); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Implementation Tracks</h4>${trackRows}</div>`;
+    } else if (Array.isArray(phases) && phases.length > 0) {
+        const phaseRows = phases.slice(0, 4).map(p => {
+            if (typeof p === 'string') return `<div class="tool-row"><span>${esc(p)}</span></div>`;
+            return `<div class="tool-row"><span>${esc(p.name || p.phase || p.description || '')}</span><span class="accent-text">${esc(p.timeline || p.duration || '')}</span></div>`;
+        }).join('');
+        toolSection = `<div style="margin-top:10px;"><h4 style="font-size:13px; color:var(--text-light); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Implementation Phases</h4>${phaseRows}</div>`;
+    }
+
+    const leftHtml = `
+        <div class="scenario-enriched">
+            <h3 style="margin:0 0 6px 0;">${esc(scenario.philosophy || scenario.description || '')}</h3>
+            ${scenario.bestFor ? `<p style="font-size:13px; color:var(--text-light); margin-bottom:8px;"><strong>Best for:</strong> ${truncate(scenario.bestFor, 150)}</p>` : ''}
+            ${scenario.totalDuration ? `<p style="font-size:13px;"><strong>Timeline:</strong> ${esc(scenario.totalDuration)}</p>` : ''}
+            ${toolSection}
+        </div>`;
+
+    // Right side: cost + strengths/weaknesses + ROI
+    const strengths = Array.isArray(scenario.strengths) ? scenario.strengths.slice(0, 4) : [];
+    const weaknesses = Array.isArray(scenario.weaknesses) ? scenario.weaknesses.slice(0, 3) : [];
+    const strengthsHtml = strengths.map(s => `<div class="strength-item">${esc(s)}</div>`).join('');
+    const weaknessesHtml = weaknesses.map(w => `<div class="weakness-item">${esc(w)}</div>`).join('');
+
+    const totalCost = scenario.costs?.totalYear1 || scenario.costs?.total || scenario.cost || '';
+    const payback = scenario.roiProjection?.paybackPeriod || scenario.expectedROI || '';
+    const bundleNote = scenario.canBundleWith || scenario.complementsScenarioE || '';
+
+    const rightHtml = `
+        <div class="scenario-enriched">
+            <div class="cost" style="font-size:24px; margin-bottom:10px;">${esc(totalCost || 'Contact for pricing')}</div>
+            ${strengthsHtml ? `<div style="margin-bottom:8px;"><strong style="font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--text-light);">Strengths</strong>${strengthsHtml}</div>` : ''}
+            ${weaknessesHtml ? `<div style="margin-bottom:8px;"><strong style="font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--text-light);">Considerations</strong>${weaknessesHtml}</div>` : ''}
+            ${payback ? `<div class="roi-highlight">${esc(typeof payback === 'string' ? payback : 'ROI: ' + payback)}</div>` : ''}
+            ${bundleNote ? `<p style="font-size:12px; color:var(--accent); margin-top:6px;"><strong>Note:</strong> ${truncate(bundleNote, 100)}</p>` : ''}
+            ${scenario.fitAssessment ? `<p style="font-size:12px; color:var(--text-light); margin-top:6px; font-style:italic;">${truncate(scenario.fitAssessment, 120)}</p>` : ''}
+        </div>`;
+
+    return splitSlide(`Scenario ${letter}: ${scenario.label || ''}`, leftHtml, rightHtml);
+}
+
+// ---------------------------------------------------------------------------
 // Main assembly function
 // ---------------------------------------------------------------------------
 
@@ -1095,63 +1441,180 @@ function assemblePresentation(data) {
     }
 
     // --- SECTION 3: MARKET LANDSCAPE ---
-    slides.push(dividerSlide('Market Landscape', 'Industry trends and competitive landscape analysis', 'Section 03'));
+    slides.push(dividerSlide('Market Landscape', 'Industry trends, competitive intelligence, and AI tool analysis', 'Section 03'));
 
-    // Industry overview
-    const industryContent = marketAnalysis.industryOverview?.summary
-        || marketAnalysis.industryOverview?.overview
-        || (typeof marketAnalysis.industryOverview === 'string' ? marketAnalysis.industryOverview : '');
-    slides.push(contentSlide('Industry AI Adoption', industryContent ? [industryContent] : ['AI adoption trends analysis based on current market research']));
+    // 3a. Executive Summary — Market Stats (metric banner)
+    const execSummary = marketAnalysis.executiveSummary || {};
+    {
+        const metrics = [];
+        const mktStat = parseStat(execSummary.marketSize);
+        if (mktStat) metrics.push({ value: mktStat, label: 'Market Size' });
+        const adoptStat = parseStat(execSummary.adoptionTrend);
+        if (adoptStat) metrics.push({ value: adoptStat, label: 'Adoption Rate' });
+        // Extract additional stats from the text
+        const urgStat = parseStat(execSummary.urgency);
+        if (urgStat) metrics.push({ value: urgStat, label: 'Key Benchmark' });
+        const gapStat = parseStat(execSummary.criticalGap);
+        if (gapStat && metrics.length < 4) metrics.push({ value: gapStat, label: 'Governance Gap' });
 
-    // Competitor landscape
-    const competitorContent = marketAnalysis.competitorLandscape?.summary
-        || marketAnalysis.competitorLandscape?.overview
-        || (typeof marketAnalysis.competitorLandscape === 'string' ? marketAnalysis.competitorLandscape : '');
-    if (competitorContent) {
-        slides.push(contentSlide('Competitive Landscape', [competitorContent]));
-    }
-
-    // Tool landscape
-    const toolContent = marketAnalysis.toolLandscape?.summary
-        || marketAnalysis.toolLandscape?.overview
-        || (typeof marketAnalysis.toolLandscape === 'string' ? marketAnalysis.toolLandscape : '');
-    if (toolContent) {
-        slides.push(contentSlide('AI Tool Landscape', [toolContent]));
-    }
-
-    // Market tools list
-    if (marketAnalysis.toolLandscape?.tools && Array.isArray(marketAnalysis.toolLandscape.tools)) {
-        const toolBullets = marketAnalysis.toolLandscape.tools.slice(0, 6).map(t =>
-            typeof t === 'string' ? t : `<strong>${t.name || t.tool}</strong> — ${t.description || t.use || t.category || ''}`
-        );
-        if (toolBullets.length > 0) {
-            slides.push(contentSlide('Key AI Tools in Market', toolBullets));
+        if (metrics.length >= 2) {
+            slides.push(metricBannerSlide('Industry AI Adoption', metrics, truncate(execSummary.adoptionTrend, 180)));
+        } else {
+            // fallback: at least show the text content
+            const fallbackText = execSummary.marketSize || execSummary.adoptionTrend || '';
+            if (fallbackText) slides.push(contentSlide('Industry AI Adoption', [truncate(fallbackText, 300)]));
         }
     }
 
-    // Regulatory considerations
-    if (marketAnalysis.regulatoryCompliance) {
-        const regContent = marketAnalysis.regulatoryCompliance.summary
-            || (typeof marketAnalysis.regulatoryCompliance === 'string' ? marketAnalysis.regulatoryCompliance : '');
-        if (regContent) {
-            slides.push(contentSlide('Regulatory & Compliance', [regContent]));
+    // 3b. Executive Summary — Critical Gap & Urgency (multi-section)
+    if (execSummary.criticalGap || execSummary.urgency) {
+        const gapSections = [];
+        if (execSummary.criticalGap) gapSections.push({ title: 'Critical Gap', content: execSummary.criticalGap });
+        if (execSummary.urgency) gapSections.push({ title: 'Why Now', content: execSummary.urgency });
+        slides.push(multiSectionSlide('Market Urgency & Opportunity', gapSections));
+    }
+
+    // 3c. Competitive Landscape (multi-section)
+    const compLandscape = marketAnalysis.competitorLandscape || {};
+    {
+        const compSections = [];
+        if (compLandscape.summary) compSections.push({ title: 'Overview', content: compLandscape.summary });
+        if (compLandscape.peerActivity) compSections.push({ title: 'Peer Activity', content: compLandscape.peerActivity });
+        if (compLandscape.midMarketGap) compSections.push({ title: 'Mid-Market Gap', content: compLandscape.midMarketGap });
+        if (compSections.length > 0) {
+            slides.push(multiSectionSlide('Competitive Landscape', compSections));
+        }
+    }
+
+    // 3d. Competitive Risks (bullets)
+    if (Array.isArray(compLandscape.competitiveRisks) && compLandscape.competitiveRisks.length > 0) {
+        slides.push(contentSlide('Competitive Risks', compLandscape.competitiveRisks.slice(0, 6)));
+    }
+
+    // 3e. Tool Landscape — per category tables
+    const toolLandscape = marketAnalysis.toolLandscape || {};
+    if (Array.isArray(toolLandscape.categories)) {
+        toolLandscape.categories.forEach(cat => {
+            if (!Array.isArray(cat.tools) || cat.tools.length === 0) return;
+            // Table with tool name, pricing, relevance
+            const headers = ['Tool', 'Pricing', 'Fit Assessment'];
+            const rows = cat.tools.slice(0, 6).map(t => [
+                `<strong>${esc(t.name || '')}</strong>`,
+                esc(truncate(t.pricing || t.price || '—', 60)),
+                truncate(t.relevance || '', 80)
+            ]);
+            slides.push(tableSlide(cat.name || 'AI Tools', headers, rows, toolLandscape.summary ? truncate(toolLandscape.summary, 120) : ''));
+        });
+
+        // Top 3 tools detail slide (pick highest-relevance from first category)
+        const allTools = toolLandscape.categories.flatMap(c => c.tools || []);
+        if (allTools.length >= 2) {
+            slides.push(toolDetailSlide('Top AI Tools for Your Firm', allTools.slice(0, 3)));
+        }
+    }
+
+    // 3f. Client Acquisition (NEW — previously unmapped)
+    const clientAcq = marketAnalysis.clientAcquisition || {};
+    if (clientAcq.summary || clientAcq.roiCase) {
+        const acqSections = [];
+        if (clientAcq.summary) acqSections.push({ title: 'AI-Powered Client Acquisition', content: clientAcq.summary });
+        if (clientAcq.roiCase) acqSections.push({ title: 'ROI Case', content: clientAcq.roiCase });
+        slides.push(multiSectionSlide('Client Acquisition with AI', acqSections));
+    }
+    if (Array.isArray(clientAcq.tools) && clientAcq.tools.length > 0) {
+        slides.push(toolDetailSlide('Client Acquisition Tools', clientAcq.tools.slice(0, 3)));
+    }
+
+    // 3g. AEO/GEO Strategy (NEW — previously unmapped)
+    const aiSearch = marketAnalysis.aiSearchRevolution || {};
+    if (aiSearch.marketShift || aiSearch.aeoStrategy || aiSearch.geoStrategy) {
+        const searchSections = [];
+        if (aiSearch.marketShift) searchSections.push({ title: 'Market Shift', content: aiSearch.marketShift });
+        if (aiSearch.aeoStrategy) searchSections.push({ title: 'AEO Strategy', content: aiSearch.aeoStrategy });
+        if (aiSearch.geoStrategy) searchSections.push({ title: 'GEO Strategy', content: aiSearch.geoStrategy });
+        slides.push(multiSectionSlide('AI Search Revolution: AEO & GEO', searchSections));
+    }
+    if (aiSearch.urgencyCase || aiSearch.measurementTools) {
+        const urgSections = [];
+        if (aiSearch.urgencyCase) urgSections.push(aiSearch.urgencyCase);
+        if (aiSearch.measurementTools) urgSections.push(typeof aiSearch.measurementTools === 'string' ? aiSearch.measurementTools : 'Measurement tools available for tracking AI search visibility.');
+        slides.push(contentSlide('AEO/GEO Urgency & Measurement', urgSections));
+    }
+
+    // 3h. Pricing Analysis (NEW — previously unmapped)
+    const pricing = marketAnalysis.pricingAnalysis || {};
+    if (pricing.enterpriseCost || pricing.subscriptionBreakdown || pricing.implementationAlternative || pricing.costInsight) {
+        const priceSections = [];
+        if (pricing.enterpriseCost) priceSections.push({ title: 'Enterprise Cost Reality', content: pricing.enterpriseCost });
+        if (pricing.subscriptionBreakdown) priceSections.push({ title: 'Subscription Breakdown', content: pricing.subscriptionBreakdown });
+        if (pricing.implementationAlternative) priceSections.push({ title: 'Implementation Alternative', content: pricing.implementationAlternative });
+        if (pricing.costInsight) priceSections.push({ title: 'Key Insight', content: pricing.costInsight });
+        slides.push(multiSectionSlide('Pricing & Cost Analysis', priceSections.slice(0, 4)));
+    }
+
+    // 3i. Strategic Positioning (NEW — previously unmapped)
+    const strategic = marketAnalysis.strategicPositioning || {};
+    if (strategic.archificialsAdvantage || strategic.competitiveComparisons || strategic.engagementRecommendation || strategic.midMarketFit) {
+        const stratSections = [];
+        if (strategic.archificialsAdvantage) stratSections.push({ title: 'Archificials Advantage', content: strategic.archificialsAdvantage });
+        if (strategic.midMarketFit) stratSections.push({ title: 'Mid-Market Fit', content: strategic.midMarketFit });
+        if (strategic.competitiveComparisons) stratSections.push({ title: 'Competitive Comparisons', content: strategic.competitiveComparisons });
+        if (strategic.engagementRecommendation) stratSections.push({ title: 'Engagement Recommendation', content: strategic.engagementRecommendation });
+        slides.push(multiSectionSlide('Strategic Positioning', stratSections.slice(0, 4)));
+    }
+
+    // 3j. Regulatory & Compliance (enhanced with table)
+    const regCompliance = marketAnalysis.regulatoryCompliance || {};
+    if (regCompliance.summary) {
+        if (Array.isArray(regCompliance.regulations) && regCompliance.regulations.length > 0) {
+            // Table of regulations
+            const regHeaders = ['Regulation', 'Impact', 'Action Required'];
+            const regRows = regCompliance.regulations.slice(0, 6).map(r => {
+                if (typeof r === 'string') return [r, '—', '—'];
+                return [
+                    esc(r.name || r.regulation || ''),
+                    truncate(r.impact || r.description || '', 80),
+                    truncate(r.action || r.requirement || '', 80)
+                ];
+            });
+            slides.push(tableSlide('Regulatory & Compliance', regHeaders, regRows, truncate(regCompliance.summary, 120)));
+        } else {
+            // Fallback: multi-section with security + governance
+            const regSections = [{ title: 'Overview', content: regCompliance.summary }];
+            if (regCompliance.securityConsiderations) regSections.push({ title: 'Security', content: regCompliance.securityConsiderations });
+            if (regCompliance.governanceRequirements) regSections.push({ title: 'Governance', content: regCompliance.governanceRequirements });
+            slides.push(multiSectionSlide('Regulatory & Compliance', regSections));
         }
     }
 
     // --- SECTION 4: DEPLOYMENT SCENARIOS ---
     slides.push(dividerSlide('Deployment Scenarios', '6 implementation pathways tailored to your needs', 'Section 04'));
 
-    // Scenario overview cards
     const scenarioLetters = ['A', 'B', 'C', 'D', 'E', 'F'];
     const scenarioKeys = ['scenarioA', 'scenarioB', 'scenarioC', 'scenarioD', 'scenarioE', 'scenarioF'];
     const hasScenarios = scenarioKeys.some(k => deploymentScenarios[k]);
 
+    // Scenario overview metric banner (costs at a glance)
     if (hasScenarios) {
-        // Individual scenario slides
+        const scenarioMetrics = scenarioLetters.map((letter, idx) => {
+            const sc = deploymentScenarios[scenarioKeys[idx]];
+            if (!sc) return null;
+            const cost = sc.costs?.totalYear1 || sc.costs?.total || sc.cost || '';
+            const costStat = parseStat(cost) || truncate(cost, 15) || '—';
+            return { value: costStat, label: `Scenario ${letter}` };
+        }).filter(Boolean);
+        if (scenarioMetrics.length >= 3) {
+            slides.push(metricBannerSlide('Investment Overview', scenarioMetrics.slice(0, 5),
+                deploymentScenarios.overview?.keyPrinciple || 'Year 1 investment comparison across all deployment scenarios'));
+        }
+    }
+
+    if (hasScenarios) {
+        // Individual enriched scenario slides
         scenarioLetters.forEach((letter, idx) => {
             const scenario = deploymentScenarios[scenarioKeys[idx]];
             if (scenario) {
-                slides.push(scenarioSlide(letter, scenario));
+                slides.push(enrichedScenarioSlide(letter, scenario));
             }
         });
 
@@ -1249,17 +1712,130 @@ function assemblePresentation(data) {
         chartConfigs['cost-comparison'] = createCostComparisonChart({ scenarios: deploymentScenarios });
 
         const scenarioC = deploymentScenarios.scenarioC || deploymentScenarios.scenarioB || {};
+
+        // --- Helper: parse cost strings like "$123,520" → 123520 ---
+        const parseCost = (str) => {
+            if (typeof str === 'number') return str;
+            if (!str) return 0;
+            return parseFloat(String(str).replace(/[$,]/g, '')) || 0;
+        };
+
+        // --- ROI Projection Chart ---
+        // Generate a realistic S-curve from payback period and total investment
+        const totalInvestment = parseCost(scenarioC.costs?.totalYear1 || scenarioC.costs?.total);
+        const investmentK = totalInvestment / 1000; // in thousands
+
+        // Parse payback period (e.g., "9-11 months" → take midpoint, or bare "12")
+        let paybackMonths = 10; // default
+        const paybackStr = scenarioC.roiProjection?.paybackPeriod || '';
+        const paybackMatch = paybackStr.match(/(\d+)(?:\s*[-–]\s*(\d+))?\s*month/i);
+        if (paybackMatch) {
+            paybackMonths = paybackMatch[2]
+                ? Math.round((parseInt(paybackMatch[1]) + parseInt(paybackMatch[2])) / 2)
+                : parseInt(paybackMatch[1]);
+        } else {
+            // Fallback: bare number like "12" or range "9-11"
+            const bareMatch = paybackStr.match(/(\d+)(?:\s*[-–]\s*(\d+))?/);
+            if (bareMatch) {
+                paybackMonths = bareMatch[2]
+                    ? Math.round((parseInt(bareMatch[1]) + parseInt(bareMatch[2])) / 2)
+                    : parseInt(bareMatch[1]);
+            }
+        }
+
+        // Build 7-point ROI curve: Month 0 through Month 24
+        const roiMonths = ['Month 0', 'Month 3', 'Month 6', 'Month 9', 'Month 12', 'Month 18', 'Month 24'];
+        const roiMonthNums = [0, 3, 6, 9, 12, 18, 24];
+        const roiValues = roiMonthNums.map(m => {
+            if (m === 0) return -investmentK;
+            // S-curve: break even at paybackMonths, then accelerate
+            const progress = m / paybackMonths;
+            if (progress < 1) return Math.round(-investmentK * (1 - progress * 0.9));
+            return Math.round(investmentK * (progress - 1) * 1.5);
+        });
+        const investmentLine = roiMonthNums.map(() => -investmentK);
+
         chartConfigs['roi-projection'] = createROIProjectionChart({
-            months: scenarioC.timeline?.map?.(t => t.phase) || [],
-            roi: scenarioC.roiProjection ? [parseFloat(scenarioC.roiProjection.estimate || scenarioC.roiProjection) || 0] : [],
-            investment: scenarioC.costs ? [parseFloat(scenarioC.costs.totalYear1 || scenarioC.costs.total || 0) || 0] : []
+            months: roiMonths,
+            roi: roiValues,
+            investment: investmentLine
         });
 
-        chartConfigs['implementation-gantt'] = createImplementationGanttChart({
-            phases: scenarioC.timeline?.map?.(t => t.phase) || [],
-            startDates: scenarioC.timeline?.map?.(t => t.start) || [],
-            endDates: scenarioC.timeline?.map?.(t => t.end) || []
+        // --- Implementation Gantt Chart ---
+        // Scenario C uses "phases" array, each with "name" or "phase" field
+        // Phase names contain timing like "(Months 1-3)" or "(Weeks 1-4)"
+        let phasesArr = scenarioC.phases || scenarioC.timeline || [];
+        const today = new Date();
+        const startOfProject = new Date(today.getFullYear(), today.getMonth() + 1, 1); // next month 1st
+
+        const ganttPhases = [];
+        const ganttStarts = [];
+        const ganttEnds = [];
+
+        // Generate default phases if phasesArr is empty but we have scenario data
+        if ((!Array.isArray(phasesArr) || phasesArr.length === 0) && hasScenarios) {
+            phasesArr = [
+                { name: 'Discovery & Planning (Months 1-2)' },
+                { name: 'Tool Selection & Setup (Months 2-4)' },
+                { name: 'Integration & Training (Months 4-8)' },
+                { name: 'Optimization & Scaling (Months 8-12)' }
+            ];
+        }
+
+        phasesArr.forEach((p, idx) => {
+            const phaseName = p.name || p.phase || p.description || p.focus || ('Phase ' + (idx + 1));
+            // Clean display name: strip parenthetical timing
+            const displayName = phaseName.replace(/\s*\(.*?\)\s*$/, '').trim() || phaseName;
+            ganttPhases.push(displayName);
+
+            // Try to extract month ranges like "Months 1-3" or "Month 1"
+            const monthMatch = phaseName.match(/months?\s*(\d+)\s*[-–]\s*(\d+)/i)
+                || phaseName.match(/months?\s*(\d+)/i);
+            // Try week ranges like "Weeks 1-4"
+            const weekMatch = phaseName.match(/weeks?\s*(\d+)\s*[-–]\s*(\d+)/i)
+                || phaseName.match(/weeks?\s*(\d+)/i);
+
+            let startDate, endDate;
+
+            if (monthMatch) {
+                const m1 = parseInt(monthMatch[1]) - 1; // 0-indexed offset
+                const m2 = monthMatch[2] ? parseInt(monthMatch[2]) - 1 : m1;
+                startDate = new Date(startOfProject);
+                startDate.setMonth(startDate.getMonth() + m1);
+                endDate = new Date(startOfProject);
+                endDate.setMonth(endDate.getMonth() + m2 + 1);
+                endDate.setDate(endDate.getDate() - 1); // last day of end month
+            } else if (weekMatch) {
+                const w1 = parseInt(weekMatch[1]) - 1;
+                const w2 = weekMatch[2] ? parseInt(weekMatch[2]) - 1 : w1;
+                startDate = new Date(startOfProject);
+                startDate.setDate(startDate.getDate() + w1 * 7);
+                endDate = new Date(startOfProject);
+                endDate.setDate(endDate.getDate() + (w2 + 1) * 7 - 1);
+            } else {
+                // Fallback: evenly distribute phases across 12 months
+                const totalPhases = phasesArr.length;
+                const monthsPerPhase = Math.ceil(12 / totalPhases);
+                startDate = new Date(startOfProject);
+                startDate.setMonth(startDate.getMonth() + idx * monthsPerPhase);
+                endDate = new Date(startDate);
+                endDate.setMonth(endDate.getMonth() + monthsPerPhase);
+                endDate.setDate(endDate.getDate() - 1);
+            }
+
+            const fmt = (d) => d.toISOString().split('T')[0];
+            ganttStarts.push(fmt(startDate));
+            ganttEnds.push(fmt(endDate));
         });
+
+        // Only create gantt if we extracted at least one phase
+        if (ganttPhases.length > 0) {
+            chartConfigs['implementation-gantt'] = createImplementationGanttChart({
+                phases: ganttPhases,
+                startDates: ganttStarts,
+                endDates: ganttEnds
+            });
+        }
     }
 
     const chartsJsonScript = `(function(){

@@ -6,6 +6,7 @@
  * - GET /r/:slug → password form or report (if authenticated)
  * - POST /r/:slug/auth → validate password, set auth cookie
  * - GET /r/:slug/pdf → serve with ?print-pdf for PDF export
+ * - GET /p/:slug → serve prompt document (no auth, internal use)
  * - GET /health → health check
  */
 
@@ -36,6 +37,19 @@ export default {
             return handleGetReportPDF(request, url, env);
         }
         
+        // Route: GET /p/:slug — serve prompt document (no password, internal use)
+        if (url.pathname.match(/^\/p\/[a-z0-9-]+\/?$/) && request.method === 'GET') {
+            const slug = url.pathname.split('/')[2];
+            const obj = await env.REPORTS_BUCKET.get(`prompts/${slug}/prompt.md`);
+            if (!obj) return new Response('Prompt not found', { status: 404 });
+            return new Response(await obj.text(), {
+                headers: {
+                    'Content-Type': 'text/plain; charset=utf-8',
+                    'Content-Disposition': `inline; filename="research-prompt-${slug}.md"`
+                }
+            });
+        }
+
         // 404
         return new Response('Not Found', { status: 404 });
     }

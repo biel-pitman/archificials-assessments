@@ -186,6 +186,9 @@ SCENARIO E: "AI-Powered Client Acquisition & SEO"
 - Track 3: Paid Acquisition — LSAs or equivalent, optimization
 - Timeline: 12-16 weeks across all tracks
 - Cost: Archificials engagement fee + monthly tool subscriptions
+- 5 specific strengths (measurable growth, fast payback, direct revenue impact, data-driven, scalable)
+- 4 specific weaknesses (ongoing cost, competitive landscape, results vary, requires content)
+- ROI projection with metric, 12-month estimate, and payback period in months
 - Expected ROI: Quantified (e.g., one additional case/enrollment per month = $X revenue)
 - Can be sold standalone OR bundled with C or D
 
@@ -195,6 +198,9 @@ SCENARIO F: "AEO & GEO Infrastructure"
 - Track 2: AEO Content Architecture (Months 2-4) — Q&A pages, schema markup, topical clusters
 - Track 3: GEO Citation Building (Months 3-6+) — bylines, media, third-party presence
 - Investment and timeline per track
+- 5 specific strengths (first-mover advantage, compounding returns, structural moat, authority building, low competition)
+- 4 specific weaknesses (new channel uncertainty, slow initial results, requires expertise, measurement difficulty)
+- ROI projection with metric, 12-month estimate, and payback period in months
 - Why acting NOW creates compounding, structural advantage
 - Complementary to Scenario E (E captures intent, F ensures visibility)
 
@@ -359,6 +365,13 @@ OUTPUT FORMAT - Return valid JSON only (no markdown):
       "monthlyTools": "tool subscriptions per month",
       "totalYear1": "total estimate"
     },
+    "strengths": ["specific strength 1", "specific strength 2", "specific strength 3", "specific strength 4", "specific strength 5"],
+    "weaknesses": ["specific weakness 1", "specific weakness 2", "specific weakness 3", "specific weakness 4"],
+    "roiProjection": {
+      "metric": "acquisition growth metric",
+      "estimate": "12-month projection",
+      "paybackPeriod": "estimated months to ROI"
+    },
     "expectedROI": {
       "scenario": "quantified revenue impact from acquisition improvements",
       "paybackPeriod": "estimated days/months",
@@ -385,6 +398,13 @@ OUTPUT FORMAT - Return valid JSON only (no markdown):
       "implementation": "setup and content creation",
       "ongoing": "monthly monitoring and expansion",
       "totalYear1": "total estimate"
+    },
+    "strengths": ["specific strength 1", "specific strength 2", "specific strength 3", "specific strength 4", "specific strength 5"],
+    "weaknesses": ["specific weakness 1", "specific weakness 2", "specific weakness 3", "specific weakness 4"],
+    "roiProjection": {
+      "metric": "AI search visibility metric",
+      "estimate": "12-month projection",
+      "paybackPeriod": "estimated months to ROI"
     },
     "expectedROI": {
       "scenario": "quantified impact from AI search visibility",

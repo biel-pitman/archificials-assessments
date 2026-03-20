@@ -4,15 +4,8 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-};
 var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-};
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
 };
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
@@ -412,2181 +405,669 @@ OUTPUT FORMAT - Return valid JSON only (no markdown, no explanation):
   }
 });
 
-// reports/research/deployment-scenarios.js
-var require_deployment_scenarios = __commonJS({
-  "reports/research/deployment-scenarios.js"(exports, module) {
+// reports/engine/prompt-generator.js
+var require_prompt_generator = __commonJS({
+  "reports/engine/prompt-generator.js"(exports, module) {
     var { VERTICAL_KNOWLEDGE, ARCHIFICIALS_POSITIONING } = require_market_analysis();
-    function buildDeploymentScenariosPrompt(assessmentData, searchResults, marketAnalysis) {
-      const vertical = assessmentData.vertical || "law-firm";
+    function scoreLabel(score) {
+      if (score < 40) return "WEAK";
+      if (score < 65) return "MODERATE";
+      return "STRONG";
+    }
+    function scoreEmoji(score) {
+      if (score < 40) return "\u26A0";
+      if (score < 65) return "\u2B06";
+      return "\u2713";
+    }
+    function scorePriority(score) {
+      if (score < 40) return "HIGH PRIORITY \u2014 significant room for improvement";
+      if (score < 65) return "MEDIUM PRIORITY \u2014 targeted improvements available";
+      return "LOWER PRIORITY \u2014 maintain and extend advantage";
+    }
+    function buildHeader(ad) {
+      const orgName = ad.inst_name || ad.firm_name || "Client";
+      const date = (/* @__PURE__ */ new Date()).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+      return `# AI Readiness Research Brief: ${orgName}
+## Prepared by Archificials Assessment Pipeline v1.0 | ${date}
+
+---
+
+> **How to use this document:** Copy this entire document into Claude Cowork (or any AI tool with web search enabled and extended thinking). The AI will execute all research sections, produce cited findings, and output a structured report ready for presentation assembly.
+
+---`;
+    }
+    function buildRoleBlock(vertical) {
       const vk = VERTICAL_KNOWLEDGE[vertical] || VERTICAL_KNOWLEDGE["law-firm"];
-      const industry = assessmentData.inst_type || assessmentData.firm_type || vk.label;
-      const orgName = assessmentData.inst_name || assessmentData.firm_name || "Organization";
-      const orgSize = assessmentData.inst_size || assessmentData.firm_size || "medium";
-      const scores = {
-        operational: assessmentData.scores?.operational || 50,
-        acquisition: assessmentData.scores?.acquisition || 50,
-        digital: assessmentData.scores?.digital || 50,
-        practice_readiness: assessmentData.scores?.practice_readiness || 50
-      };
-      const overallScore = Math.round((scores.operational + scores.acquisition + scores.digital + scores.practice_readiness) / 4);
-      const toolsByCategory = {};
-      vk.knownTools.forEach((t) => {
-        if (!toolsByCategory[t.category]) toolsByCategory[t.category] = [];
-        toolsByCategory[t.category].push(t);
-      });
-      const toolsReference = vk.knownTools.map(
-        (t) => `- ${t.name} (${t.category}): ${t.pricing} \u2014 ${t.description}`
+      return `
+# INSTRUCTIONS FOR AI AGENT
+
+You are a **senior AI strategy consultant at Archificials**, a consulting firm specializing in enterprise AI readiness and implementation for ${vk.label.toLowerCase()} organizations.
+
+You are preparing a **comprehensive, publication-quality research report** for a prospective client. This report will be presented to C-level executives and must demonstrate expert-level knowledge that earns trust and drives action.
+
+## Your Mandate
+
+1. **Use web search extensively.** Every section requires live research. Search for current data, verify pricing, find recent case studies, and discover competitor activity.
+2. **Cite everything.** Every claim, statistic, and data point must include an inline citation: \`[Source: URL]\`. No unsourced claims.
+3. **Be specific.** Include exact tool names, exact pricing, exact market figures. Executives need precision, not generalities.
+4. **Be opinionated.** Tell the client what matters and what doesn't. Don't hedge. Recommend with confidence.
+5. **Write substantively.** Each section should contain multiple detailed paragraphs (3-5 sentences minimum per paragraph), not surface-level bullets.
+6. **Produce your output in the structured format specified in Part 2** at the end of this document.
+
+---`;
+    }
+    function buildClientContext(ad) {
+      const orgName = ad.inst_name || ad.firm_name || "Organization";
+      const orgType = ad.inst_type || ad.firm_type || "Unknown";
+      const orgSize = ad.inst_size || ad.firm_size || "Unknown";
+      const contact = ad.contact_name || "Not provided";
+      const contactTitle = ad.contact_title || "";
+      const contactEmail = ad.contact_email || "";
+      const s = ad.scores || {};
+      const overall = s.overall || Math.round(((s.operational || 0) + (s.acquisition || 0) + (s.digital || 0) + (s.practice_readiness || 0)) / 4);
+      return `
+# PART 1: CLIENT CONTEXT & RESEARCH INSTRUCTIONS
+
+## 1.1 Client Profile
+
+| Field | Value |
+|-------|-------|
+| **Organization** | ${orgName} |
+| **Type** | ${orgType} |
+| **Size** | ${orgSize} |
+| **Contact** | ${contact}${contactTitle ? `, ${contactTitle}` : ""} |
+| **Email** | ${contactEmail || "Not provided"} |
+
+## 1.2 Assessment Scores
+
+| Dimension | Score | Rating | Priority | Insight |
+|-----------|-------|--------|----------|---------|
+| Operational Efficiency | ${s.operational || 0}/100 | ${scoreEmoji(s.operational || 0)} ${scoreLabel(s.operational || 0)} | ${scorePriority(s.operational || 0)} | ${s.insight_operational || "No insight available"} |
+| Client/Student Acquisition | ${s.acquisition || 0}/100 | ${scoreEmoji(s.acquisition || 0)} ${scoreLabel(s.acquisition || 0)} | ${scorePriority(s.acquisition || 0)} | ${s.insight_acquisition || "No insight available"} |
+| Digital Visibility | ${s.digital || 0}/100 | ${scoreEmoji(s.digital || 0)} ${scoreLabel(s.digital || 0)} | ${scorePriority(s.digital || 0)} | ${s.insight_digital || "No insight available"} |
+| Practice/Institutional Readiness | ${s.practice_readiness || 0}/100 | ${scoreEmoji(s.practice_readiness || 0)} ${scoreLabel(s.practice_readiness || 0)} | ${scorePriority(s.practice_readiness || 0)} | ${s.insight_practice_readiness || "No insight available"} |
+| **Overall Readiness** | **${overall}/100** | | | ${s.overall_summary || ""} |
+
+**Recommended First Step:** ${s.recommended_first_step || "See analysis below"}
+
+${Array.isArray(s.top_opportunities) && s.top_opportunities.length > 0 ? `**Top Opportunities:**
+${s.top_opportunities.map((o) => `- ${o}`).join("\n")}` : ""}
+
+## 1.3 Client Signals
+
+| Signal | Response |
+|--------|----------|
+| **Investment Appetite** | ${ad.investment_question || "Not specified"} |
+| **Urgency Level** | ${ad.urgency_question || "Not specified"} |
+${ad.open_ended_response ? `| **Open-Ended Response** | "${ad.open_ended_response}" |` : ""}
+
+> **Use these scores and signals throughout your research.** Every section should be personalized to this client's specific maturity level, gaps, and stated priorities. Reference their scores when making recommendations.
+`;
+    }
+    function buildGeographicIntelligence(ad) {
+      const orgName = ad.inst_name || ad.firm_name || "Organization";
+      const orgType = ad.inst_type || ad.firm_type || "organization";
+      return `
+## 1.4 Geographic Intelligence
+
+> **CRITICAL \u2014 EXECUTE BEFORE SECTION 5**
+>
+> The assessment data does not include the client's geographic location. You MUST determine it before conducting competitor research.
+>
+> **Step 1:** Examine the organization name "${orgName}" for geographic clues (city, state, region in the name).
+>
+> **Step 2:** If the name is ambiguous, search for: \`"${orgName}" ${orgType} location address\`
+>
+> **Step 3:** Identify the **metro area and state** where this organization operates.
+>
+> **Step 4:** Use this location to scope ALL competitor research in Section 5 to the same metro area / state. A client in Austin, TX must hear about Austin competitors \u2014 NOT firms in Seattle or New York.
+>
+> **Step 5:** If location truly cannot be determined after searching, default to national-level analysis and explicitly note: "Geographic location could not be determined; competitor analysis is national-level."
+>
+> **Record the determined location here in your output:** _[City, State]_
+
+---`;
+    }
+    function buildResearchSection_ExecutiveSummary(vk) {
+      return `
+## SECTION 1: Executive Summary & Market Overview
+
+### Objective
+Produce a data-rich market overview that establishes the urgency and scale of AI adoption in the ${vk.label.toLowerCase()} industry. This section sets the stage for every subsequent recommendation.
+
+### Research Queries (execute these web searches)
+1. \`AI adoption ${vk.searchTerms[0]} statistics market size 2025 2026\`
+2. \`${vk.searchTerms[0]} market growth forecast CAGR\`
+3. \`AI ${vk.searchTerms[0]} governance policy gap statistics\`
+
+### Reference Data (starting point \u2014 verify and update via web search)
+
+| Metric | Known Value (verify current) |
+|--------|------------------------------|
+| Market Size | ${vk.marketData.marketSize} |
+| Growth Rate | ${vk.marketData.growthRate} |
+| Tech Spending Growth | ${vk.marketData.techSpendingGrowth} |
+| AI Adoption Rate | ${vk.marketData.adoptionRate} |
+| Policy Gap | ${vk.marketData.policyGap} |
+
+### Minimum Sources
+Cite at least **3 sources** published after January 2025.
+
+### Deliverables
+- 3-5 key market metrics with citations
+- Market size figure and growth projection
+- Adoption rate with year-over-year trend
+- The critical gap between adoption speed and governance readiness
+- Why this matters specifically for a firm of this client's size
+
+### Quality Bar
+A reader should walk away knowing the exact market size, how fast it's growing, what percentage of peers are adopting, and why the window to act is closing. Vague statements like "AI is growing rapidly" are insufficient \u2014 use specific numbers.
+`;
+    }
+    function buildResearchSection_ToolLandscape(vk) {
+      const toolsTable = vk.knownTools.map(
+        (t) => `| ${t.name} | ${t.category} | ${t.pricing} | ${t.description.substring(0, 80)}... |`
       ).join("\n");
-      const acquisitionToolsRef = (vk.acquisitionTools || []).map(
+      return `
+## SECTION 2: AI Tool Landscape (${vk.label}-Specific)
+
+### Objective
+Provide a comprehensive review of AI tools available to ${vk.label.toLowerCase()} organizations, organized by category, with verified current pricing and relevance assessment for THIS client.
+
+### Research Queries
+1. \`best AI tools for ${vk.searchTerms[0]} 2025 2026 comparison\`
+2. \`${vk.searchTerms[0]} software pricing review\`
+3. \`new AI tools ${vk.searchTerms[0]} launched 2025 2026\`
+
+### Reference Data (known tools \u2014 verify pricing is current, add any new tools discovered)
+
+| Tool | Category | Pricing | Description |
+|------|----------|---------|-------------|
+${toolsTable}
+
+### Minimum Sources
+Cite at least **3 sources**. Verify at least 5 tool prices via their official websites or recent reviews.
+
+### Deliverables
+- **Tool comparison table** with columns: Tool Name, Category, Pricing (verified), Best For, Relevance to This Client (High/Medium/Low)
+- Per-category summary (2-3 sentences each) explaining the category and which tools lead
+- At least 8-10 tools covered with substantive descriptions
+- Highlight any NEW tools launched in the last 12 months not in the reference data
+- For each tool: strengths (2-3), weaknesses (1-2), and specific relevance to THIS client's size and type
+
+### Quality Bar
+An executive should be able to use this section to understand exactly what tools exist, what they cost, and which ones matter for their organization. Generic descriptions are insufficient \u2014 include specific pricing tiers, feature differentiators, and honest assessments of limitations.
+`;
+    }
+    function buildResearchSection_ClientAcquisition(vk) {
+      const acqToolsList = (vk.acquisitionTools || []).map(
+        (t) => `- **${t.name}:** ${t.description}`
+      ).join("\n");
+      return `
+## SECTION 3: Client Acquisition & AI-Powered Growth
+
+### Objective
+Analyze how AI can transform client/student acquisition, intake, and retention. This section often delivers the fastest ROI argument because it directly impacts revenue.
+
+### Research Queries
+1. \`AI client acquisition ${vk.searchTerms[0]} case study ROI\`
+2. \`AI chatbot intake automation ${vk.searchTerms[0]} 2025 2026\`
+3. \`digital marketing AI tools ${vk.searchTerms[0]} lead generation\`
+
+### Reference Data
+${acqToolsList}
+
+### Minimum Sources
+Cite at least **3 sources** with real ROI case studies or statistics.
+
+### Deliverables
+- Overview paragraph: why client-facing AI often delivers faster ROI than internal workflow AI
+- **Tool recommendations table**: tool name, pricing, use case for this client
+- At least 1 quantified ROI case study from a similar organization
+- Specific intake automation workflow description
+- CRM and follow-up sequence recommendations with costs
+
+### Quality Bar
+Include at least one concrete example: "A [similar-size firm] implemented [tool] and saw [X%] increase in [metric] within [timeframe]. [Source: URL]"
+`;
+    }
+    function buildResearchSection_AISearch(vk) {
+      return `
+## SECTION 4: AI Search Revolution (AEO & GEO)
+
+### Objective
+Explain the paradigm shift from traditional SEO to AI-mediated search (Answer Engine Optimization and Generative Engine Optimization). This is a first-mover-advantage opportunity \u2014 organizations that act now build a structural moat.
+
+### Research Queries
+1. \`answer engine optimization AEO ${vk.searchTerms[0]} 2025 2026\`
+2. \`generative engine optimization GEO strategy guide\`
+3. \`AI search market share ChatGPT Perplexity Google AI overview statistics 2026\`
+4. \`${vk.searchTerms[0]} AI search visibility strategy\`
+
+### Minimum Sources
+Cite at least **4 sources** \u2014 this is a rapidly evolving space.
+
+### Deliverables
+- **Market shift analysis**: What percentage of queries are now AI-mediated? How fast is this growing?
+- **AEO strategy**: Specific tactics for ${vk.label.toLowerCase()} organizations (structured data, FAQ pages, schema markup)
+- **GEO strategy**: How to ensure AI platforms (ChatGPT, Perplexity, Gemini, Copilot) recommend this organization by name
+- **Measurement tools**: What tools monitor AI search visibility (list with pricing)
+- **Urgency case**: Why acting NOW creates compounding advantage \u2014 include specific data on first-mover benefits
+- **Competitive gap**: How many ${vk.label.toLowerCase()} organizations currently have AEO/GEO strategies (likely <5%)
+
+### Quality Bar
+The reader should understand that AI search is not a future trend but a present reality, with specific market share data. They should have 3-5 concrete tactical steps they can take immediately.
+`;
+    }
+    function buildResearchSection_CompetitorLandscape(vk, ad) {
+      const orgName = ad.inst_name || ad.firm_name || "Organization";
+      const orgType = ad.inst_type || ad.firm_type || vk.label;
+      const orgSize = ad.inst_size || ad.firm_size || "medium";
+      return `
+## SECTION 5: Competitor Landscape (GEOGRAPHICALLY TARGETED)
+
+### Objective
+Identify what THIS client's actual local competitors are doing with AI. This section MUST use the geographic location determined in Section 1.4.
+
+> **CRITICAL:** Use the client's geographic location from Section 1.4. Do NOT provide generic national competitor data. The client needs to know what firms in THEIR market are doing.
+
+### Research Queries (substitute [CITY/STATE] with determined location)
+1. \`"${orgType}" AI adoption [CITY/STATE] 2025 2026\`
+2. \`AI technology ${vk.searchTerms[0]} [CITY/STATE] [STATE] market\`
+3. \`${orgType} artificial intelligence [CITY/STATE] competitors\`
+4. \`top ${orgType} [CITY/STATE] technology innovation\`
+
+### Minimum Sources
+Cite at least **3 sources** with geographic relevance. If local sources are scarce, supplement with regional/state-level data.
+
+### Deliverables
+- **Competitor matrix table** with columns: Competitor Name, Location, Known AI Tools/Initiatives, Estimated AI Maturity (Early/Developing/Advanced), Source
+- At least 3-5 named competitors in the client's geographic market
+- **Gap analysis**: Where does ${orgName} stand relative to local competitors?
+- **Competitive risks**: 3-4 specific risks of delayed AI adoption in this market
+- **Market segmentation**: How ${orgSize} organizations in this market compare to larger/smaller peers
+- **Mid-market opportunity**: ${vk.midMarketGap}
+
+### Quality Bar
+The client should recognize the competitor names. If you cannot find specific local competitors using AI, note this gap and explain what the general competitive landscape looks like for ${orgSize} ${orgType} organizations in that market. Never fabricate competitor names.
+`;
+    }
+    function buildResearchSection_RegulatoryCompliance(vk) {
+      const regsRef = vk.regulations.map((r) => `- ${r}`).join("\n");
+      return `
+## SECTION 6: Regulatory & Compliance Landscape
+
+### Objective
+Document the regulatory framework that governs AI deployment in ${vk.label.toLowerCase()} organizations. Compliance is often the #1 concern for C-level decision makers.
+
+### Research Queries
+1. \`AI regulations ${vk.searchTerms[0]} compliance 2025 2026\`
+2. \`${vk.searchTerms[0]} AI ethics policy requirements new rules\`
+3. \`AI data privacy ${vk.searchTerms[0]} liability 2026\`
+
+### Reference Data (verify and update)
+${regsRef}
+
+### Minimum Sources
+Cite at least **3 sources** including primary regulatory/standards body publications.
+
+### Deliverables
+- **Regulation table** with columns: Regulation/Standard, Issuing Body, Date, Key Requirement, Impact on AI Deployment, Compliance Deadline (if any)
+- At least 4-5 regulations/standards covered
+- **Security considerations**: Data privacy and confidentiality risks specific to this vertical
+- **Governance framework requirements**: What policies and procedures the organization needs
+- **Compliance checklist**: 5-7 action items for responsible AI deployment
+- **Liability implications**: Professional liability and insurance considerations
+
+### Quality Bar
+An executive should be able to hand this section to their compliance officer and have a clear starting point. Include specific regulation names, dates, and requirements \u2014 not vague references to "ethical considerations."
+`;
+    }
+    function buildResearchSection_PricingAnalysis(vk, ad) {
+      const orgSize = ad.inst_size || ad.firm_size || "medium";
+      return `
+## SECTION 7: Pricing Analysis & Cost Benchmarks
+
+### Objective
+Provide realistic cost benchmarks for AI implementation at a ${orgSize} ${vk.label.toLowerCase()} organization. Executives need to understand total cost of ownership, not just subscription fees.
+
+### Research Queries
+1. \`AI implementation cost ${vk.searchTerms[0]} ${orgSize} budget 2025 2026\`
+2. \`${vk.searchTerms[0]} technology spending benchmarks survey\`
+3. \`AI ROI ${vk.searchTerms[0]} payback period case study\`
+
+### Minimum Sources
+Cite at least **2 sources** with pricing or cost benchmark data.
+
+### Deliverables
+- **Enterprise cost estimate**: Total cost range for comprehensive AI deployment at this organization's size
+- **Subscription breakdown**: Itemized annual costs for recommended tool stack (use pricing from Section 2)
+- **Implementation vs. SaaS comparison**: Cost comparison of off-the-shelf subscriptions vs. custom implementation over 3 years
+- **Key cost insight**: The most important pricing insight for this specific organization (based on their investment appetite signal)
+- **Budget recommendation**: Recommended first-year budget range with phased approach
+
+### Quality Bar
+Include specific dollar amounts, not ranges so wide they're meaningless. If a tool costs "$49-$149/user/month," calculate what that means for an organization of this size.
+`;
+    }
+    function buildResearchSection_StrategicPositioning() {
+      const tiers = ARCHIFICIALS_POSITIONING.engagementTiers.map(
+        (t) => `| ${t.tier} | ${t.price} | ${t.duration} | ${t.description} |`
+      ).join("\n");
+      return `
+## SECTION 8: Strategic Positioning & Archificials Fit
+
+### Objective
+Position Archificials as the ideal implementation partner for this organization. This section is about WHY the client needs a partner (not just tools) and why Archificials specifically.
+
+### Reference Data (use as-is \u2014 this is Archificials' positioning, not research)
+
+**Competitive Advantage:**
+${ARCHIFICIALS_POSITIONING.competitiveAdvantage}
+
+**Engagement Tiers:**
+
+| Tier | Price | Duration | Description |
+|------|-------|----------|-------------|
+${tiers}
+
+**Pricing Philosophy:** ${ARCHIFICIALS_POSITIONING.pricingPhilosophy}
+
+**Vendor Agnostic:** ${ARCHIFICIALS_POSITIONING.vendorAgnostic}
+
+### Deliverables
+- **Why a partner, not just tools**: 2-3 paragraphs on why SaaS subscriptions alone fail without implementation expertise
+- **Competitive comparisons**: How Archificials competes vs. Big 4 consulting, SaaS vendors, IT shops, and solo consultants
+- **Engagement recommendation**: Recommended entry point for THIS organization based on their scores
+- **Mid-market fit**: Why Archificials is specifically built for organizations of this size and maturity
+
+### Quality Bar
+This should read as strategic insight, not a sales pitch. Show the reader WHY the implementation gap exists and how it specifically affects organizations at their maturity level.
+`;
+    }
+    function buildDeploymentScenarios(vk, ad) {
+      const orgName = ad.inst_name || ad.firm_name || "Organization";
+      const orgSize = ad.inst_size || ad.firm_size || "medium";
+      const s = ad.scores || {};
+      const toolsList = vk.knownTools.map(
+        (t) => `- ${t.name} (${t.category}): ${t.pricing}`
+      ).join("\n");
+      const acqToolsList = (vk.acquisitionTools || []).map(
         (t) => `- ${t.name}: ${t.description}`
       ).join("\n");
-      const engagementTiersRef = ARCHIFICIALS_POSITIONING.engagementTiers.map(
-        (t) => `- ${t.tier} (${t.price} | ${t.duration}): ${t.description}`
-      ).join("\n");
-      let marketContextBlock = "";
-      if (marketAnalysis && typeof marketAnalysis === "object" && !marketAnalysis.raw) {
-        const ma = marketAnalysis;
-        marketContextBlock = `
-MARKET INTELLIGENCE (from prior analysis):
-- Executive Summary: ${ma.executiveSummary?.marketSize || "Available from market research"}
-- Adoption Trend: ${ma.executiveSummary?.adoptionTrend || "High and accelerating"}
-- Mid-Market Gap: ${ma.competitorLandscape?.midMarketGap || vk.midMarketGap}
-- Tool Landscape: ${ma.toolLandscape?.summary?.substring(0, 500) || "Comprehensive tool landscape analyzed"}
-- AEO/GEO Opportunity: ${ma.aiSearchRevolution?.marketShift?.substring(0, 300) || "AI search is transforming discovery"}
-    `;
-      } else {
-        marketContextBlock = `
-MARKET INTELLIGENCE:
-- Market Size: ${vk.marketData.marketSize}
-- Growth Rate: ${vk.marketData.growthRate}
-- Adoption Rate: ${vk.marketData.adoptionRate}
-- Mid-Market Gap: ${vk.midMarketGap}
-    `;
-      }
-      const systemPrompt = `You are a senior AI strategy architect at Archificials, designing deployment pathways for a prospective client. You are preparing a document that will be shared with C-level decision makers.
-
-CRITICAL QUALITY STANDARDS:
-- Write with the authority of a consultant who has deployed AI across dozens of ${vk.label.toLowerCase()} organizations.
-- Every scenario must include SPECIFIC TOOL NAMES, SPECIFIC COSTS, SPECIFIC TIMELINES, and SPECIFIC DELIVERABLES.
-- Do NOT use generic descriptions like "AI tool for research." Name the actual product, its pricing, and what it does.
-- Include realistic strengths AND weaknesses for every scenario. Executives respect honesty, not salesmanship.
-- Costs must be realistic and detailed \u2014 break down by software, services, training, and ongoing.
-- Timelines must include specific phases with concrete deliverables per phase.
-- Training requirements should be role-specific, not generic.
-- Each scenario's "Fit for ${orgName}" assessment must reference their actual scores and what those scores imply.
-- Write substantive paragraphs (3-5 sentences), not surface-level bullets.
-- The recommended scenario (C) should be clearly the most compelling, but present all options honestly.
-
-Output only valid JSON with the structure specified. Include ALL fields for ALL 6 scenarios.`;
-      const userPrompt = `Design 6 AI deployment scenarios for "${orgName}", a ${orgSize} ${industry} organization.
-
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-ASSESSMENT SCORES
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-- Operational Efficiency: ${scores.operational}/100
-- Client/Student Acquisition: ${scores.acquisition}/100
-- Digital Visibility: ${scores.digital}/100
-- Practice/Institutional Readiness: ${scores.practice_readiness}/100
-- Overall Readiness: ${overallScore}/100
-
-Score Interpretation:
-${scores.operational < 50 ? "\u26A0 LOW operational efficiency \u2014 significant room for AI workflow automation" : scores.operational < 70 ? "\u2B06 MODERATE operational efficiency \u2014 targeted improvements possible" : "\u2713 STRONG operational efficiency \u2014 optimize and extend"}
-${scores.acquisition < 50 ? "\u26A0 LOW acquisition score \u2014 client/student pipeline needs AI-driven growth" : scores.acquisition < 70 ? "\u2B06 MODERATE acquisition \u2014 specific funnel improvements available" : "\u2713 STRONG acquisition \u2014 optimize conversion and retention"}
-${scores.digital < 50 ? "\u26A0 LOW digital visibility \u2014 near-zero digital baseline, massive upside" : scores.digital < 70 ? "\u2B06 MODERATE digital presence \u2014 SEO and content gaps exist" : "\u2713 STRONG digital visibility \u2014 maintain and extend advantage"}
-${scores.practice_readiness < 50 ? "\u26A0 LOW readiness \u2014 will need significant change management support" : scores.practice_readiness < 70 ? "\u2B06 MODERATE readiness \u2014 can absorb AI with proper training" : "\u2713 HIGH readiness \u2014 can move quickly on implementation"}
-
-${marketContextBlock}
-
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-REFERENCE: AVAILABLE ${vk.label.toUpperCase()} AI TOOLS (use these in scenarios)
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-${toolsReference}
-
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-REFERENCE: CLIENT ACQUISITION TOOLS
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-${acquisitionToolsRef}
-
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-REFERENCE: ARCHIFICIALS ENGAGEMENT MODEL
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-${engagementTiersRef}
-
-Pricing Philosophy: ${ARCHIFICIALS_POSITIONING.pricingPhilosophy}
-
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-SCENARIO REQUIREMENTS \u2014 Generate all 6 with expert-level detail
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-
-SCENARIO A: "Off-the-Shelf AI Stack"
-- Deploy 3-5 SPECIFIC NAMED TOOLS (from the reference list) configured for ${orgName}
-- Each tool recommendation must include: name, what it does for THIS org, specific pricing
-- Timeline: 10-14 weeks with specific phases
-- Cost: Itemized (software licenses, Archificials configuration, training)
-- Training: Role-specific requirements (partners/admins, associates/staff, paralegals/support)
-- 5 specific strengths (proven, fast, predictable, supported, purpose-built)
-- 5 specific weaknesses (not customized, multiple vendors, no integration, generic, compounding costs)
-- Fit assessment: Why this is specifically GOOD or NOT for ${orgName} given their scores
-
-SCENARIO B: "Custom AI Platform (Archificials Build)"
-- Archificials designs and builds a BESPOKE platform with 4-6 NAMED CUSTOM MODULES
-- Each module must have a specific name, purpose, and capability description
-- Architecture: Private deployment, firm-controlled data, integration with existing systems
-- Timeline: 20-24 weeks with specific phases and deliverables
-- Cost: Project fee + ongoing maintenance
-- Training: Structured onboarding program with specific time commitments
-- 5+ specific strengths (customized, data control, lower long-term cost, competitive moat, evolves)
-- 5+ specific weaknesses (longer timeline, higher upfront cost, requires involvement, dependency)
-- Fit assessment: Why this is EXCELLENT for long-term but requires commitment
-
-SCENARIO C: "Hybrid Approach (RECOMMENDED)"
-- THIS IS THE RECOMMENDED SCENARIO \u2014 make it the most compelling
-- Phase 1 (Months 1-3): Deploy NAMED off-the-shelf tools for immediate wins
-- Phase 2 (Months 4-8): Build NAMED custom modules for highest-value workflows
-- Phase 3 (Months 9-12): Advanced capabilities and full integration
-- Each phase has specific deliverables, costs, and expected outcomes
-- Total cost: Broken down by phase
-- Show how value delivery begins in Month 1
-- 5+ strengths (immediate ROI, manageable pace, discovery-driven, best 2-3 year ROI)
-- 3-4 weaknesses (complexity, longer total timeline, sustained engagement, change fatigue)
-- Fit assessment: Why this is the BEST FIT for ${orgName} \u2014 be specific about their scores
-
-SCENARIO D: "AI-First Transformation"
-- Full organizational reimagination around AI
-- 4-5 major business processes redesigned with specifics
-- Claude or similar AI as persistent work partner
-- Timeline: 18-24 months
-- Highest investment estimate
-- New governance roles and decision-making frameworks
-- 5+ strengths (maximum advantage, future-proof, industry leadership)
-- 4+ weaknesses (cost, timeline, disruption, execution risk)
-
-SCENARIO E: "AI-Powered Client Acquisition & SEO"
-- EXTERNAL GROWTH focus \u2014 client/student acquisition, not internal workflow
-- Track 1: SEO & Content \u2014 specific tools, content strategy, timeline
-- Track 2: Intake Automation \u2014 chatbots, CRM, follow-up sequences
-- Track 3: Paid Acquisition \u2014 LSAs or equivalent, optimization
-- Timeline: 12-16 weeks across all tracks
-- Cost: Archificials engagement fee + monthly tool subscriptions
-- Expected ROI: Quantified (e.g., one additional case/enrollment per month = $X revenue)
-- Can be sold standalone OR bundled with C or D
-
-SCENARIO F: "AEO & GEO Infrastructure"
-- AI search optimization \u2014 own the AI-mediated search landscape
-- Track 1: Authority Asset Activation (Months 1-2) \u2014 structured data, directories, press
-- Track 2: AEO Content Architecture (Months 2-4) \u2014 Q&A pages, schema markup, topical clusters
-- Track 3: GEO Citation Building (Months 3-6+) \u2014 bylines, media, third-party presence
-- Investment and timeline per track
-- Why acting NOW creates compounding, structural advantage
-- Complementary to Scenario E (E captures intent, F ensures visibility)
-
-OUTPUT FORMAT - Return valid JSON only (no markdown):
-{
-  "overview": {
-    "clientProfile": "2-3 sentence profile of ${orgName} and their readiness level",
-    "keyPrinciple": "Even imperfect AI deployment executed with confidence delivers more value than perfect planning that never launches",
-    "whyMultipleScenarios": "paragraph explaining why different organizations need different approaches"
-  },
-  "scenarioA": {
-    "label": "Off-the-Shelf AI Stack",
-    "philosophy": "Deploy and configure existing, proven AI tools without custom development",
-    "bestFor": "who this scenario is ideal for",
-    "recommendedTools": [
-      {
-        "name": "specific tool name",
-        "category": "category",
-        "purpose": "what it does for THIS org",
-        "estimatedCost": "specific annual cost"
-      }
-    ],
-    "timeline": [
-      {
-        "phase": "Phase 1 (Weeks 1-4)",
-        "focus": "description",
-        "deliverables": ["deliverable 1", "deliverable 2"]
-      }
-    ],
-    "totalDuration": "10-14 weeks",
-    "costs": {
-      "softwareLicenses": "annual estimate",
-      "archificialsServices": "configuration and setup fee",
-      "training": "training cost estimate",
-      "totalYear1": "total first year",
-      "yearTwoPlus": "recurring annual cost"
-    },
-    "trainingRequirements": [
-      {
-        "role": "role name",
-        "hours": "X hours",
-        "content": "what they learn"
-      }
-    ],
-    "strengths": ["specific strength 1", "specific strength 2", "specific strength 3", "specific strength 4", "specific strength 5"],
-    "weaknesses": ["specific weakness 1", "specific weakness 2", "specific weakness 3", "specific weakness 4"],
-    "roiProjection": {
-      "metric": "productivity improvement or cost savings",
-      "estimate": "specific 12-month projection",
-      "paybackPeriod": "estimated months to ROI"
-    },
-    "fitAssessment": "2-3 sentence assessment of fit for THIS organization referencing their scores"
-  },
-  "scenarioB": {
-    "label": "Custom AI Platform (Archificials Build)",
-    "philosophy": "Archificials designs and builds a custom AI platform tailored specifically to your workflows",
-    "bestFor": "who this scenario is ideal for",
-    "customModules": [
-      {
-        "name": "Module Name",
-        "purpose": "what it does",
-        "capabilities": ["capability 1", "capability 2"]
-      }
-    ],
-    "architecture": "deployment architecture description \u2014 private, secure, integrated",
-    "timeline": [],
-    "totalDuration": "20-24 weeks",
-    "costs": {
-      "projectFee": "Archificials build cost",
-      "ongoingMaintenance": "monthly maintenance",
-      "totalYear1": "total first year",
-      "yearTwoPlus": "ongoing cost (substantially lower than Scenario A)"
-    },
-    "trainingRequirements": [],
-    "strengths": [],
-    "weaknesses": [],
-    "roiProjection": {
-      "metric": "metric",
-      "estimate": "24-month projection",
-      "paybackPeriod": "months"
-    },
-    "fitAssessment": "assessment for THIS organization"
-  },
-  "scenarioC": {
-    "label": "Hybrid Approach (Recommended)",
-    "philosophy": "Deploy off-the-shelf for immediate wins while building custom for highest-value workflows",
-    "bestFor": "most organizations \u2014 this is typically Archificials' recommendation",
-    "phases": [
-      {
-        "name": "Phase 1: Quick Wins (Months 1-3)",
-        "description": "deploy NAMED tools for immediate value",
-        "tools": ["tool 1", "tool 2"],
-        "deliverables": ["deliverable 1", "deliverable 2"],
-        "cost": "phase cost"
-      }
-    ],
-    "totalDuration": "12 months (but value begins Month 1)",
-    "costs": {
-      "phase1": "cost",
-      "phase2": "cost",
-      "phase3": "cost",
-      "archificialsTotal": "total Archificials engagement",
-      "softwareTotal": "total software costs",
-      "totalYear1": "total investment"
-    },
-    "trainingRequirements": [],
-    "strengths": [],
-    "weaknesses": [],
-    "roiProjection": {
-      "metric": "combined approach improvement",
-      "estimate": "12-month projection",
-      "paybackPeriod": "months"
-    },
-    "fitAssessment": "why this is the BEST FIT for THIS organization \u2014 reference specific scores"
-  },
-  "scenarioD": {
-    "label": "AI-First Transformation",
-    "philosophy": "Reimagine the entire organization around AI as a persistent work partner",
-    "bestFor": "well-funded, innovative leaders ready for radical transformation",
-    "transformationAreas": [
-      {
-        "area": "business process",
-        "currentState": "how it works now",
-        "aiState": "how it works after transformation"
-      }
-    ],
-    "timeline": [],
-    "totalDuration": "18-24 months",
-    "costs": {
-      "consulting": "Archificials engagement",
-      "customBuilds": "platform development",
-      "changeManagement": "training and adoption",
-      "totalYear1": "year 1 estimate",
-      "totalProgram": "full program cost"
-    },
-    "governance": "new roles, steering committee, decision frameworks",
-    "strengths": [],
-    "weaknesses": [],
-    "roiProjection": {
-      "metric": "transformational impact",
-      "estimate": "24-month projection",
-      "paybackPeriod": "months"
-    },
-    "fitAssessment": "assessment for THIS organization"
-  },
-  "scenarioE": {
-    "label": "AI-Powered Client Acquisition & SEO",
-    "philosophy": "Deploy AI to transform external client/student acquisition, digital visibility, and intake automation",
-    "bestFor": "organizations with low digital visibility scores seeking measurable growth",
-    "tracks": [
-      {
-        "name": "Track name",
-        "timeline": "weeks X-Y",
-        "activities": ["activity 1", "activity 2"],
-        "tools": ["tool with pricing"],
-        "deliverables": ["deliverable 1"]
-      }
-    ],
-    "totalDuration": "12-16 weeks",
-    "costs": {
-      "archificialsEngagement": "engagement fee",
-      "monthlyTools": "tool subscriptions per month",
-      "totalYear1": "total estimate"
-    },
-    "expectedROI": {
-      "scenario": "quantified revenue impact from acquisition improvements",
-      "paybackPeriod": "estimated days/months",
-      "comparison": "comparison to internal workflow ROI timeline"
-    },
-    "canBundleWith": "Scenario C or D as the growth track alongside efficiency track",
-    "fitAssessment": "assessment based on acquisition and digital scores"
-  },
-  "scenarioF": {
-    "label": "AEO & GEO Infrastructure",
-    "philosophy": "Ensure AI search engines cite and recommend this organization by name",
-    "bestFor": "organizations with strong track records but weak digital presence seeking compounding advantage",
-    "coreProblem": "what problem this solves \u2014 AI handling 30-40% of high-intent queries",
-    "tracks": [
-      {
-        "name": "Track name",
-        "timeline": "Months X-Y",
-        "activities": ["activity 1", "activity 2"],
-        "deliverables": ["deliverable 1"]
-      }
-    ],
-    "totalDuration": "6+ months (compounds over time)",
-    "costs": {
-      "implementation": "setup and content creation",
-      "ongoing": "monthly monitoring and expansion",
-      "totalYear1": "total estimate"
-    },
-    "expectedROI": {
-      "scenario": "quantified impact from AI search visibility",
-      "timeToFirstResults": "days/months",
-      "compoundingEffect": "why early action creates structural advantage"
-    },
-    "complementsScenarioE": "how E and F work together \u2014 E captures intent, F ensures visibility",
-    "fitAssessment": "assessment based on digital visibility score and organizational assets"
-  }
-}`;
-      return {
-        system: systemPrompt,
-        user: userPrompt
-      };
-    }
-    module.exports = {
-      buildDeploymentScenariosPrompt
-    };
-  }
-});
-
-// reports/research/meeting-brief.js
-var require_meeting_brief = __commonJS({
-  "reports/research/meeting-brief.js"(exports, module) {
-    var { ARCHIFICIALS_POSITIONING } = require_market_analysis();
-    function buildMeetingBriefPrompt(assessmentData, marketAnalysis, deploymentScenarios) {
-      const vertical = assessmentData.vertical || "law-firm";
-      const industry = assessmentData.inst_type || assessmentData.firm_type || "Organization";
-      const orgName = assessmentData.inst_name || assessmentData.firm_name || "Organization";
-      const orgSize = assessmentData.inst_size || assessmentData.firm_size || "medium";
-      const contactName = assessmentData.contact_name || "Contact";
-      const contactTitle = assessmentData.contact_title || "Unknown role";
-      const contactEmail = assessmentData.contact_email || "";
-      const investmentLevel = assessmentData.investment_question || "unknown";
-      const urgency = assessmentData.urgency_question || "unknown";
-      const openEndedResponse = assessmentData.open_ended_response || "";
-      const scores = {
-        operational: assessmentData.scores?.operational || 50,
-        acquisition: assessmentData.scores?.acquisition || 50,
-        digital: assessmentData.scores?.digital || 50,
-        practice_readiness: assessmentData.scores?.practice_readiness || 50
-      };
-      const overallScore = Math.round((scores.operational + scores.acquisition + scores.digital + scores.practice_readiness) / 4);
-      const weakestDimension = Object.entries(scores).sort((a, b) => a[1] - b[1])[0];
-      const strongestDimension = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
-      let marketContext = "Market analysis available from research phase.";
-      if (marketAnalysis && typeof marketAnalysis === "object" && !marketAnalysis.raw) {
-        marketContext = `
-- Market Overview: ${marketAnalysis.executiveSummary?.marketSize || "Large and growing rapidly"}
-- Adoption Trend: ${marketAnalysis.executiveSummary?.adoptionTrend || "Accelerating"}
-- Competitor Activity: ${marketAnalysis.competitorLandscape?.peerActivity || "Peers are actively deploying AI"}
-- Key Gap: ${marketAnalysis.competitorLandscape?.midMarketGap || "Mid-market organizations are underserved"}
-- AEO/GEO Opportunity: ${marketAnalysis.aiSearchRevolution?.urgencyCase || "AI search is transforming discovery"}`;
-      }
-      let scenarioContext = "4-6 deployment scenarios designed.";
-      if (deploymentScenarios && typeof deploymentScenarios === "object" && !deploymentScenarios.raw) {
-        const ds = deploymentScenarios;
-        const recScenario = ds.scenarioC || {};
-        scenarioContext = `
-- Scenario A (Off-the-Shelf): ${ds.scenarioA?.costs?.totalYear1 || "Estimated"} Year 1
-- Scenario B (Custom Build): ${ds.scenarioB?.costs?.totalYear1 || "Estimated"} Year 1
-- Scenario C (Hybrid - RECOMMENDED): ${ds.scenarioC?.costs?.totalYear1 || "Estimated"} Year 1
-- Scenario D (Transformation): ${ds.scenarioD?.costs?.totalYear1 || "Estimated"} Year 1
-- Scenario E (Acquisition & SEO): ${ds.scenarioE?.costs?.totalYear1 || "Estimated"} Year 1
-- Scenario F (AEO & GEO): ${ds.scenarioF?.costs?.totalYear1 || "Estimated"} Year 1
-- Recommended Lead: Scenario C (Hybrid) \u2014 immediate wins + long-term advantage
-- Fit Assessment: ${recScenario.fitAssessment || "Best fit for most organizations"}`;
-      }
-      const engagementTiersRef = ARCHIFICIALS_POSITIONING.engagementTiers.map(
+      const tiers = ARCHIFICIALS_POSITIONING.engagementTiers.map(
         (t) => `- ${t.tier}: ${t.price} (${t.duration})`
       ).join("\n");
-      const systemPrompt = `You are Archificials' head strategist preparing a comprehensive, candid meeting brief for Biel before a client call. This brief is INTERNAL ONLY \u2014 be direct, strategic, and tactical.
+      return `
+## SECTION 9: Deployment Scenarios (A through F)
 
-CRITICAL QUALITY STANDARDS:
-- This is a strategy document for an experienced sales leader, not a generic template.
-- Be SPECIFIC. Reference the client's actual scores, their stated investment appetite, and their urgency signals.
-- Be CANDID. If their scores suggest they'll be resistant to change, say so and recommend how to handle it.
-- Be TACTICAL. Give Biel exact opening lines, exact questions to ask, exact phrases for handling objections.
-- Include discovery questions that probe the GAPS revealed by their assessment scores.
-- The goal: Biel walks into this meeting feeling like he already knows the client. He has a clear narrative, a plan B, and confidence.
-- Include a pre-meeting preparation checklist and a post-meeting follow-up plan.
+### Objective
+Design 6 AI deployment scenarios of increasing complexity and investment, each tailored to ${orgName}'s specific assessment scores. Every scenario must include SPECIFIC NAMED TOOLS with SPECIFIC PRICING and REALISTIC TIMELINES.
 
-Output only valid JSON with the structure specified.`;
-      const userPrompt = `Prepare a comprehensive meeting brief for Biel's call with "${orgName}".
+### Client Score Context (use this to customize each scenario)
+- Operational Efficiency: ${s.operational || 0}/100 \u2014 ${scoreLabel(s.operational || 0)}. ${(s.operational || 0) < 50 ? "Significant room for AI workflow automation. Prioritize in Scenarios A and C." : (s.operational || 0) < 65 ? "Targeted improvements possible. Include workflow tools in most scenarios." : "Already strong. Focus scenarios on extending advantage rather than basic automation."}
+- Client/Student Acquisition: ${s.acquisition || 0}/100 \u2014 ${scoreLabel(s.acquisition || 0)}. ${(s.acquisition || 0) < 50 ? "Major growth opportunity. Scenario E is critical." : (s.acquisition || 0) < 65 ? "Room for AI-powered growth. Include acquisition tools in C and E." : "Strong pipeline. Optimize rather than build from scratch."}
+- Digital Visibility: ${s.digital || 0}/100 \u2014 ${scoreLabel(s.digital || 0)}. ${(s.digital || 0) < 50 ? "Near-zero digital presence. AEO/GEO (Scenario F) has massive upside." : (s.digital || 0) < 65 ? "Digital gaps exist. SEO and AEO improvements in Scenarios E and F." : "Strong digital presence. Scenario F for compounding returns and moat building."}
+- Practice/Institutional Readiness: ${s.practice_readiness || 0}/100 \u2014 ${scoreLabel(s.practice_readiness || 0)}. ${(s.practice_readiness || 0) < 50 ? "Will need significant change management support. Budget extra training time in all scenarios." : (s.practice_readiness || 0) < 65 ? "Can absorb AI with proper training. Standard onboarding sufficient." : "High readiness. Can move quickly on implementation."}
 
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-CLIENT PROFILE
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-- Organization: ${orgName} (${orgSize} ${industry})
-- Contact: ${contactName}, ${contactTitle}
-- Email: ${contactEmail || "Not provided"}
-- Assessment Score: ${overallScore}/100 overall readiness
-  - Operational Efficiency: ${scores.operational}/100 ${scores.operational < 50 ? "\u26A0 WEAK" : scores.operational < 70 ? "\u2B06 MODERATE" : "\u2713 STRONG"}
-  - Client/Student Acquisition: ${scores.acquisition}/100 ${scores.acquisition < 50 ? "\u26A0 WEAK" : scores.acquisition < 70 ? "\u2B06 MODERATE" : "\u2713 STRONG"}
-  - Digital Visibility: ${scores.digital}/100 ${scores.digital < 50 ? "\u26A0 WEAK" : scores.digital < 70 ? "\u2B06 MODERATE" : "\u2713 STRONG"}
-  - Practice/Institutional Readiness: ${scores.practice_readiness}/100 ${scores.practice_readiness < 50 ? "\u26A0 WEAK" : scores.practice_readiness < 70 ? "\u2B06 MODERATE" : "\u2713 STRONG"}
-- Weakest dimension: ${weakestDimension[0]} (${weakestDimension[1]}/100)
-- Strongest dimension: ${strongestDimension[0]} (${strongestDimension[1]}/100)
+### Available Tools (use these in your scenarios)
+${toolsList}
 
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-CLIENT SIGNALS
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-- Investment appetite: ${investmentLevel}
-- Urgency indicated: ${urgency}
-${openEndedResponse ? `- Open-ended response: "${openEndedResponse}"` : ""}
+### Client Acquisition Tools
+${acqToolsList}
 
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-MARKET INTELLIGENCE
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-${marketContext}
+### Archificials Engagement Tiers
+${tiers}
 
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-DEPLOYMENT SCENARIOS AVAILABLE
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-${scenarioContext}
+### Scenario Requirements
 
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-ARCHIFICIALS ENGAGEMENT TIERS
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-${engagementTiersRef}
-Entry Point Recommendation: Discovery & Strategy ($7,500-$15,000)
+For EACH of the 6 scenarios below, provide:
+1. **Label and philosophy** (1-2 sentences)
+2. **Recommended tools** with specific names, purposes, and annual costs
+3. **Timeline** with specific phases, durations, and deliverables per phase
+4. **Total costs** broken down: software licenses, Archificials services, training, Year 1 total, Year 2+ recurring
+5. **Strengths** (5 specific advantages)
+6. **Weaknesses** (4 specific limitations \u2014 be honest)
+7. **ROI projection** with metric, 12-month estimate, and payback period in months
+8. **Fit assessment** for ${orgName} specifically, referencing their scores above
 
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-BRIEF REQUIREMENTS
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+**Scenario A: "Off-the-Shelf AI Stack"** \u2014 Deploy 3-5 proven tools, configured by Archificials. Quick wins, lowest risk. Timeline: 10-14 weeks. Best for organizations wanting immediate results.
 
-1. EXECUTIVE SUMMARY (3-4 sentences)
-   - Who they are, their maturity level, and what they need most urgently
-   - What their scores tell us about their readiness and biggest gaps
-   - The strategic opportunity for Archificials
+**Scenario B: "Custom AI Platform (Archificials Build)"** \u2014 Bespoke platform with 4-6 custom modules. Private deployment, firm-controlled data. Timeline: 20-24 weeks. Best for organizations wanting competitive differentiation.
 
-2. PAIN POINTS & MOTIVATION (4-5 pain points)
-   - Each pain point must reference a SPECIFIC score dimension and what it implies
-   - Include who in their organization cares most about each pain point
-   - Rate severity 1-10 based on their actual scores
-   - Include what's driving urgency (or explain their lack of urgency and how to create it)
+**Scenario C: "Hybrid Approach" (RECOMMENDED)** \u2014 THIS IS THE RECOMMENDED SCENARIO. Phase 1 (months 1-3): deploy named off-the-shelf tools. Phase 2 (months 4-8): build custom modules for highest-value workflows. Phase 3 (months 9-12): advanced capabilities. Make this the MOST COMPELLING option. Show how value delivery begins Month 1.
 
-3. COMPETITIVE POSITIONING
-   - Are they under competitive pressure? What are peers doing?
-   - How to frame Archificials' unique advantage for THIS client
-   - Specific talking points about vendor-agnostic approach and mid-market focus
+**Scenario D: "AI-First Transformation"** \u2014 Full organizational reimagination. 4-5 major business processes redesigned. Timeline: 18-24 months. Highest investment. Include new governance roles and decision-making frameworks.
 
-4. PRE-MEETING PREPARATION (before the call)
-   - 3-4 specific things Biel should research or prepare
-   - Look up recent news about ${orgName}
-   - Review relevant compliance/regulatory updates
-   - Decide which scenario to open with based on their scores
+**Scenario E: "AI-Powered Client Acquisition & SEO"** \u2014 External growth focus with 3 tracks: (1) SEO & Content, (2) Intake Automation, (3) Paid Acquisition. Timeline: 12-16 weeks. Include quantified expected ROI (e.g., one additional case/enrollment per month = $X revenue). Can bundle with C or D.
 
-5. RECOMMENDED CONVERSATION ARC (60 minutes)
-   - Opening hook (relate to their SPECIFIC weakest score area)
-   - Discovery questions (8-10 targeted questions based on assessment gaps)
-   - Market validation (use competitor data to create urgency)
-   - Scenario presentation (lead with recommended, have fallbacks ready)
-   - Close (next steps, investment range, timeline)
+**Scenario F: "AEO & GEO Infrastructure"** \u2014 AI search optimization with 3 tracks: (1) Authority Asset Activation (months 1-2), (2) AEO Content Architecture (months 2-4), (3) GEO Citation Building (months 3-6+). First-mover advantage creates compounding, structural moat. Complements Scenario E. Include expected ROI with compounding effect explanation.
+`;
+    }
+    function buildMeetingBrief(ad) {
+      const orgName = ad.inst_name || ad.firm_name || "Organization";
+      const orgSize = ad.inst_size || ad.firm_size || "medium";
+      const orgType = ad.inst_type || ad.firm_type || "organization";
+      const contact = ad.contact_name || "Contact";
+      const contactTitle = ad.contact_title || "";
+      const s = ad.scores || {};
+      const overall = s.overall || Math.round(((s.operational || 0) + (s.acquisition || 0) + (s.digital || 0) + (s.practice_readiness || 0)) / 4);
+      const dims = [
+        { name: "Operational Efficiency", score: s.operational || 0 },
+        { name: "Client/Student Acquisition", score: s.acquisition || 0 },
+        { name: "Digital Visibility", score: s.digital || 0 },
+        { name: "Practice/Institutional Readiness", score: s.practice_readiness || 0 }
+      ];
+      dims.sort((a, b) => a.score - b.score);
+      return `
+## SECTION 10: Internal Meeting Brief (for Archificials Team Only)
 
-6. RECOMMENDED LEAD SCENARIO
-   - Which of A/B/C/D/E/F should Biel lead with? Why?
-   - What's the opening hook for THIS organization?
-   - How does it address their specific pain points?
-   - What's the expected investment range?
+### Objective
+Prepare an internal strategy brief for the upcoming client meeting with ${orgName}. This is NOT client-facing \u2014 be direct, strategic, and tactical.
 
-7. ALTERNATIVE SCENARIOS (fallback strategy)
-   - If they push back on COST \u2192 fall back to [which scenario] and how to position it
-   - If they push back on TIMELINE \u2192 fall back to [which scenario]
-   - If they want to FOCUS ON GROWTH \u2192 pivot to Scenario E or F
-   - If they're AMBITIOUS \u2192 upgrade to [which scenario]
+### Client Quick Profile
+- **${orgName}** \u2014 ${orgSize} ${orgType}, overall readiness ${overall}/100
+- **Contact:** ${contact}${contactTitle ? ` (${contactTitle})` : ""}
+- **Weakest dimension:** ${dims[0].name} (${dims[0].score}/100)
+- **Strongest dimension:** ${dims[3].name} (${dims[3].score}/100)
+- **Investment appetite:** ${ad.investment_question || "Unknown"}
+- **Urgency:** ${ad.urgency_question || "Unknown"}
+${ad.open_ended_response ? `- **Open-ended response:** "${ad.open_ended_response}"` : ""}
 
-8. LIKELY OBJECTIONS & RESPONSES (5-6 objections)
-   - Each objection should be realistic for a ${orgSize} ${industry}
-   - Each response must include a specific proof point, data point, or reframe
-   - Include a backup response if they push back further
-   - Common objections: budget constraints, internal skepticism, security/compliance concerns, timeline, "we're already using ChatGPT"
+### Deliverables
+1. **Executive summary** (3-4 sentences): who they are, maturity level, biggest gaps, strategic opportunity
+2. **Pain points** (4-5): each tied to a specific score dimension with severity rating 1-10
+3. **Pre-meeting checklist**: 3-4 things to research/prepare before the call
+4. **Conversation arc** (60 minutes): opening hook (tied to weakest score), discovery phase, market validation, scenario presentation, close
+5. **Recommended lead scenario**: Which of A-F to lead with and why, with specific opening hook
+6. **Alternative scenarios**: Fallback strategy for cost pushback, timeline concerns, growth focus, or ambition
+7. **Likely objections** (5-6): Realistic objections for a ${orgSize} ${orgType} with specific responses and backup responses
+8. **Budget positioning**: Interpret their investment appetite, recommend entry point (Discovery & Strategy: $7,500-$15,000), ROI framing
+9. **Discovery questions** (10-12): Targeted questions that probe assessment gaps, each with strategic purpose
+10. **Post-meeting follow-up plan**: Email outline, mirroring, proposed next step, timeline
+11. **Success criteria**: 3-4 measurable outcomes (the meeting is about earning the right to send a proposal, NOT closing)
+`;
+    }
+    function buildOutputFormat() {
+      return `
+---
 
-9. BUDGET & INVESTMENT POSITIONING
-   - Interpret their stated investment appetite: "${investmentLevel}"
-   - Recommended entry point: Discovery & Strategy engagement
-   - How to position the price (value framing, not cost framing)
-   - ROI messaging with quantified payback period
-   - Payment flexibility options to mention
+# PART 2: OUTPUT FORMAT SPECIFICATION
 
-10. DISCOVERY QUESTIONS (10-12 targeted questions)
-    - Questions specifically designed to probe the gaps their scores reveal
-    - Each question should have a strategic purpose (why you're asking)
-    - Questions about decision-making structure, budget process, existing technology
-    - Questions that naturally lead into scenario presentation
+## Structure
 
-11. POST-MEETING FOLLOW-UP PLAN
-    - Email template outline (within 24-48 hours)
-    - What to mirror back from the conversation
-    - Recommended next step: Discovery Engagement proposal
-    - Follow-up timeline (5-7 business days)
+Produce your report as **structured Markdown** with the following exact section hierarchy. Each section header must match exactly for downstream processing.
 
-12. SUCCESS CRITERIA
-    - What constitutes a successful meeting (3-4 measurable outcomes)
-    - The meeting is NOT about closing \u2014 it's about earning the right to send a proposal
+\`\`\`
+# AI Readiness Research Report: [Client Name]
 
-OUTPUT FORMAT - Valid JSON only:
+## 1. Executive Summary & Market Overview
+[Paragraphs with inline citations]
+### Key Metrics
+| Metric | Value | Source |
+[Table of 3-5 key market metrics]
+
+## 2. AI Tool Landscape
+### 2.1 [Category Name]
+[Category overview paragraph]
+#### Tool Comparison
+| Tool | Category | Pricing | Best For | Relevance | Strengths | Weaknesses |
+[Comprehensive tool table]
+
+## 3. Client Acquisition & AI-Powered Growth
+[Analysis paragraphs with tool recommendations table]
+
+## 4. AI Search Revolution (AEO & GEO)
+### 4.1 Market Shift
+### 4.2 AEO Strategy
+### 4.3 GEO Strategy
+### 4.4 Measurement & Tools
+### 4.5 Urgency Case
+
+## 5. Competitor Landscape
+### Client Location: [City, State]
+### Competitor Matrix
+| Competitor | Location | AI Tools/Initiatives | Maturity | Source |
+### Gap Analysis
+### Competitive Risks
+
+## 6. Regulatory & Compliance
+### Regulation Table
+| Regulation | Body | Date | Requirement | Impact | Deadline |
+### Compliance Checklist
+
+## 7. Pricing Analysis
+### Cost Benchmarks
+### Tool Stack Cost Estimate
+| Tool | Annual Cost | Notes |
+### Implementation vs. SaaS Comparison (3-year)
+
+## 8. Strategic Positioning
+[Archificials positioning analysis]
+
+## 9. Deployment Scenarios
+### Scenario A: Off-the-Shelf AI Stack
+#### Tools & Costs
+| Tool | Purpose | Annual Cost |
+#### Timeline
+| Phase | Duration | Deliverables |
+#### Strengths / Weaknesses
+#### ROI Projection
+#### Fit Assessment
+
+[Repeat for Scenarios B through F]
+
+### Investment Overview
+| Scenario | Year 1 Cost | Payback | Best For |
+[Summary comparison table]
+
+## 10. Meeting Brief (Internal)
+[Complete meeting preparation document]
+
+## References
+[Numbered list of all sources cited]
+\`\`\`
+
+## Table Format
+Use pipe-delimited Markdown tables. Keep columns aligned. Include headers.
+
+## Chart Data
+For any quantitative comparison that would benefit from visualization, include a JSON code block labeled with the chart type:
+
+\`\`\`json:chart-radar
 {
-  "executiveSummary": "3-4 sentences summarizing the client, their readiness, and the opportunity",
-  "painPoints": [
-    {
-      "point": "specific pain point",
-      "dimension": "which score dimension this relates to",
-      "score": "the actual score",
-      "severity": "1-10",
-      "affectedPerson": "who in the org cares most",
-      "implication": "what this score means operationally"
-    }
-  ],
-  "competitiveContext": {
-    "peerActivity": "what peers are doing with AI",
-    "urgency": "why they need to act soon (or how to create urgency if they don't feel it)",
-    "archificialsAdvantage": "specific advantage for THIS client"
-  },
-  "preMeetingChecklist": [
-    {
-      "task": "what to do",
-      "why": "why it matters"
-    }
-  ],
-  "conversationArc": {
-    "opening": "specific opening hook tied to their weakest score",
-    "discoveryPhase": "how to structure the discovery conversation",
-    "marketValidation": "how to use market data to create urgency",
-    "scenarioPresentation": "how to present the recommended scenario",
-    "close": "how to close toward next steps"
-  },
-  "recommendedScenario": {
-    "scenario": "A/B/C/D/E/F label",
-    "reasoning": "why this specific client fits this scenario based on their scores",
-    "hook": "the opening pitch for this scenario",
-    "investmentRange": "expected investment",
-    "expectedReaction": "how they'll likely respond"
-  },
-  "alternatives": [
-    {
-      "trigger": "condition (cost pushback, timeline concern, growth focus, ambition)",
-      "fallback": "scenario label",
-      "pitch": "how to position the fallback"
-    }
-  ],
-  "objections": [
-    {
-      "objection": "what they'll likely say",
-      "response": "Biel's response with specific proof/data",
-      "backup": "if they push back further"
-    }
-  ],
-  "investment": {
-    "statedAppetite": "${investmentLevel}",
-    "interpretation": "what this likely means for their budget",
-    "recommendedEntry": "Discovery & Strategy ($7,500-$15,000)",
-    "fullEngagementRange": "range if they commit to recommended scenario",
-    "paybackPeriod": "estimated months to ROI",
-    "roiMessage": "quantified benefit to use in conversation",
-    "flexibilityOptions": "payment flexibility to mention if needed"
-  },
-  "discoveryQuestions": [
-    {
-      "question": "the question to ask",
-      "purpose": "why you're asking this (strategic intent)",
-      "expectedInsight": "what the answer reveals"
-    }
-  ],
-  "postMeetingPlan": {
-    "emailOutline": "what the follow-up email should cover",
-    "mirrorBack": "reflect their stated pain points back to them",
-    "proposedNextStep": "Discovery & Strategy engagement proposal",
-    "followUpTimeline": "when to follow up",
-    "materialsToSend": ["what documents/scenarios to attach"]
-  },
-  "successCriteria": [
-    "measurable outcome 1",
-    "measurable outcome 2",
-    "measurable outcome 3",
-    "measurable outcome 4"
-  ],
-  "meetingAgenda": [
-    {
-      "timeSlot": "0-5min",
-      "topic": "topic",
-      "goal": "what to accomplish",
-      "talkingPoints": ["point 1", "point 2"]
-    }
-  ]
-}`;
-      return {
-        system: systemPrompt,
-        user: userPrompt
-      };
-    }
-    module.exports = {
-      buildMeetingBriefPrompt
-    };
-  }
-});
+  "title": "AI Readiness Scores",
+  "dimensions": ["Operational", "Acquisition", "Digital", "Readiness"],
+  "values": [35, 62, 71, 45]
+}
+\`\`\`
 
-// reports/engine/charts.js
-function createDimensionRadarChart(data) {
-  const dimensions = [
-    "Operational\nEfficiency",
-    "Client/Student\nAcquisition",
-    "Digital\nVisibility",
-    "Practice/Institutional\nReadiness"
-  ];
-  const values = [
-    data.operational || 68,
-    data.acquisition || 52,
-    data.digital || 45,
-    data.practice_readiness || 71
-  ];
-  const plotData = [
-    {
-      type: "scatterpolar",
-      r: values,
-      theta: dimensions,
-      fill: "toself",
-      name: "Current Score",
-      line: { color: ARCHIFICIALS_COLORS.accent },
-      fillcolor: "rgba(226, 115, 8, 0.2)",
-      marker: { size: 8, color: ARCHIFICIALS_COLORS.accent }
-    },
-    {
-      type: "scatterpolar",
-      r: [100, 100, 100, 100],
-      theta: dimensions,
-      fill: "toself",
-      name: "Target Score",
-      line: { color: ARCHIFICIALS_COLORS.textLight, dash: "dash" },
-      fillcolor: "transparent",
-      marker: { size: 0 }
-    }
-  ];
-  const layout = {
-    ...PLOTLY_LAYOUT_DEFAULTS,
-    polar: {
-      radialaxis: {
-        visible: true,
-        range: [0, 100],
-        tickcolor: ARCHIFICIALS_COLORS.border,
-        gridcolor: ARCHIFICIALS_COLORS.border,
-        tickfont: { size: 11 }
-      },
-      angularaxis: {
-        tickfont: { size: 12 }
-      }
-    },
-    height: 500
-  };
-  return { data: plotData, layout, config: PLOTLY_CONFIG };
-}
-function createDimensionBarChart(data) {
-  const dimensions = ["Operational Efficiency", "Client/Student Acquisition", "Digital Visibility", "Practice/Institutional Readiness"];
-  const values = [data.operational || 68, data.acquisition || 52, data.digital || 45, data.practice_readiness || 71];
-  const tierThresholds = {
-    1: { max: 24, color: ARCHIFICIALS_COLORS.tier1 },
-    2: { max: 49, color: ARCHIFICIALS_COLORS.tier2 },
-    3: { max: 74, color: ARCHIFICIALS_COLORS.tier3 },
-    4: { max: 100, color: ARCHIFICIALS_COLORS.tier4 }
-  };
-  const colors = values.map((v) => {
-    if (v <= 24) return tierThresholds[1].color;
-    if (v <= 49) return tierThresholds[2].color;
-    if (v <= 74) return tierThresholds[3].color;
-    return tierThresholds[4].color;
-  });
-  const plotData = [
-    {
-      type: "bar",
-      orientation: "h",
-      y: dimensions,
-      x: values,
-      marker: { color: colors },
-      text: values.map((v) => `${v}/100`),
-      textposition: "outside",
-      textfont: { color: ARCHIFICIALS_COLORS.text, weight: "bold" },
-      hovertemplate: "<b>%{y}</b><br>Score: %{x}/100<extra></extra>"
-    }
-  ];
-  const layout = {
-    ...PLOTLY_LAYOUT_DEFAULTS,
-    xaxis: {
-      title: "Score",
-      range: [0, 100],
-      gridcolor: ARCHIFICIALS_COLORS.border
-    },
-    yaxis: {
-      title: ""
-    },
-    height: 350,
-    margin: { l: 250, r: 80, t: 20, b: 60 }
-  };
-  return { data: plotData, layout, config: PLOTLY_CONFIG };
-}
-function createTierGaugeChart(data) {
-  const overallScore = Math.round(
-    (data.operational + data.acquisition + data.digital + data.practice_readiness) / 4
-  );
-  let tierLabel = "Getting Started";
-  let tierColor = ARCHIFICIALS_COLORS.tier1;
-  if (overallScore > 24) tierLabel = "Building Foundations";
-  tierColor = ARCHIFICIALS_COLORS.tier2;
-  if (overallScore > 49) tierLabel = "Accelerating";
-  tierColor = ARCHIFICIALS_COLORS.tier3;
-  if (overallScore > 74) tierLabel = "Leading";
-  tierColor = ARCHIFICIALS_COLORS.tier4;
-  const plotData = [
-    {
-      type: "indicator",
-      mode: "gauge+number+delta",
-      value: overallScore,
-      title: { text: "Overall AI Readiness Score", font: { size: 16 } },
-      gauge: {
-        axis: { range: [0, 100], tickwidth: 2, tickcolor: ARCHIFICIALS_COLORS.border },
-        bar: { color: tierColor, thickness: 20 },
-        bgcolor: ARCHIFICIALS_COLORS.bgLight,
-        borderwidth: 2,
-        bordercolor: ARCHIFICIALS_COLORS.border,
-        steps: [
-          { range: [0, 24], color: "rgba(244, 192, 137, 0.2)" },
-          { range: [24, 49], color: "rgba(240, 160, 80, 0.2)" },
-          { range: [49, 74], color: "rgba(226, 115, 8, 0.2)" },
-          { range: [74, 100], color: "rgba(168, 82, 6, 0.2)" }
-        ],
-        threshold: {
-          line: { color: "red", width: 0 },
-          thickness: 0.75,
-          value: 90
-        }
-      },
-      number: {
-        font: { size: 40, color: tierColor, family: "-apple-system, sans-serif" }
-      },
-      suffix: " / 100",
-      textfont: { size: 14 }
-    }
-  ];
-  const layout = {
-    ...PLOTLY_LAYOUT_DEFAULTS,
-    height: 400,
-    margin: { l: 20, r: 20, t: 80, b: 20 }
-  };
-  layout.annotations = [
-    {
-      text: `<b>Tier: ${tierLabel}</b>`,
-      xref: "paper",
-      yref: "paper",
-      x: 0.5,
-      y: -0.1,
-      showarrow: false,
-      font: { size: 14, color: tierColor }
-    }
-  ];
-  return { data: plotData, layout, config: PLOTLY_CONFIG };
-}
-function createMarketComparisonChart(data) {
-  const categories = data.categories || [
-    "Platform Maturity",
-    "Data Integration",
-    "AI Capability",
-    "Team Readiness",
-    "Investment Level"
-  ];
-  const clientScores = data.clientScores || [62, 48, 55, 71, 38];
-  const industryAverage = data.industryAverage || [72, 65, 68, 64, 55];
-  const plotData = [
-    {
-      name: "{{CLIENT_NAME}}",
-      x: categories,
-      y: clientScores,
-      type: "bar",
-      marker: { color: ARCHIFICIALS_COLORS.accent }
-    },
-    {
-      name: "Industry Average",
-      x: categories,
-      y: industryAverage,
-      type: "bar",
-      marker: { color: ARCHIFICIALS_COLORS.textLight, opacity: 0.5 }
-    }
-  ];
-  const layout = {
-    ...PLOTLY_LAYOUT_DEFAULTS,
-    barmode: "group",
-    xaxis: { title: "" },
-    yaxis: {
-      title: "Score",
-      range: [0, 100],
-      gridcolor: ARCHIFICIALS_COLORS.border
-    },
-    height: 400,
-    hovermode: "x unified"
-  };
-  return { data: plotData, layout, config: PLOTLY_CONFIG };
-}
-function createROIProjectionChart(data) {
-  const months = data.months || ["Month 0", "Month 3", "Month 6", "Month 12", "Month 18", "Month 24"];
-  const roiValues = data.roi || [-100, -60, -20, 150, 350, 600];
-  const investmentLine = data.investment || [-100, -100, -100, -100, -100, -100];
-  const plotData = [
-    {
-      name: "Cumulative ROI",
-      x: months,
-      y: roiValues,
-      type: "scatter",
-      mode: "lines+markers",
-      line: { color: ARCHIFICIALS_COLORS.success, width: 3 },
-      marker: { size: 8, color: ARCHIFICIALS_COLORS.success }
-    },
-    {
-      name: "Investment Level",
-      x: months,
-      y: investmentLine,
-      type: "scatter",
-      mode: "lines",
-      line: { color: ARCHIFICIALS_COLORS.textLight, width: 2, dash: "dash" },
-      marker: { size: 0 }
-    }
-  ];
-  const layout = {
-    ...PLOTLY_LAYOUT_DEFAULTS,
-    xaxis: { title: "Timeline" },
-    yaxis: {
-      title: "Value ($K)",
-      gridcolor: ARCHIFICIALS_COLORS.border,
-      zeroline: true,
-      zerolinecolor: ARCHIFICIALS_COLORS.border
-    },
-    height: 400,
-    hovermode: "x unified"
-  };
-  return { data: plotData, layout, config: PLOTLY_CONFIG };
-}
-function createImplementationGanttChart(data) {
-  const phases = data.phases || [
-    "Requirements & Planning",
-    "Infrastructure Setup",
-    "Core Integration",
-    "Testing & QA",
-    "Deployment",
-    "Training & Support"
-  ];
-  const startDates = data.startDates || [
-    "2026-04-01",
-    "2026-05-01",
-    "2026-06-01",
-    "2026-08-01",
-    "2026-09-01",
-    "2026-10-01"
-  ];
-  const endDates = data.endDates || [
-    "2026-04-30",
-    "2026-05-31",
-    "2026-07-31",
-    "2026-08-31",
-    "2026-09-30",
-    "2026-11-30"
-  ];
-  const plotData = [];
-  phases.forEach((phase, idx) => {
-    const start = new Date(startDates[idx]);
-    const end = new Date(endDates[idx]);
-    const duration = (end - start) / (1e3 * 60 * 60 * 24);
-    plotData.push({
-      x: [start, end],
-      y: [phase, phase],
-      mode: "lines",
-      line: { color: ARCHIFICIALS_COLORS.accent, width: 20 },
-      hovertemplate: `<b>${phase}</b><br>Start: ${startDates[idx]}<br>End: ${endDates[idx]}<br>Duration: ${duration} days<extra></extra>`,
-      showlegend: false
-    });
-  });
-  const layout = {
-    ...PLOTLY_LAYOUT_DEFAULTS,
-    xaxis: {
-      title: "Timeline",
-      type: "date",
-      gridcolor: ARCHIFICIALS_COLORS.border
-    },
-    yaxis: {
-      title: ""
-    },
-    height: 400,
-    margin: { l: 200, r: 40, t: 20, b: 60 }
-  };
-  return { data: plotData, layout, config: PLOTLY_CONFIG };
-}
-function createCostComparisonChart(data) {
-  const scenarios = data.scenarios || {
-    A: { label: "Rapid MVP", cost: 35e3, timeline: "3 months", roi_month: 9 },
-    B: { label: "Balanced Growth", cost: 75e3, timeline: "6 months", roi_month: 12 },
-    C: { label: "Enterprise Scale", cost: 15e4, timeline: "12 months", roi_month: 15 },
-    D: { label: "Custom Build", cost: 2e5, timeline: "18 months", roi_month: 18 }
-  };
-  let tableHTML = `
-        <table style="width: 100%; border-collapse: collapse; font-family: -apple-system, sans-serif;">
-            <thead>
-                <tr style="background: #1a1a2e; color: white;">
-                    <th style="padding: 12px; text-align: left; border: 1px solid #e0e0e0;">Scenario</th>
-                    <th style="padding: 12px; text-align: right; border: 1px solid #e0e0e0;">Investment</th>
-                    <th style="padding: 12px; text-align: left; border: 1px solid #e0e0e0;">Timeline</th>
-                    <th style="padding: 12px; text-align: right; border: 1px solid #e0e0e0;">ROI Month</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-  const scenarioOrder = ["scenarioA", "scenarioB", "scenarioC", "scenarioD", "scenarioE", "scenarioF", "A", "B", "C", "D", "E", "F"];
-  const sortedKeys = Object.keys(scenarios).sort((a, b) => {
-    const ai = scenarioOrder.indexOf(a);
-    const bi = scenarioOrder.indexOf(b);
-    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
-  });
-  sortedKeys.forEach((key) => {
-    const scenario = scenarios[key];
-    if (!scenario || !scenario.label) return;
-    const isRecommended = key === "scenarioC" || key === "C";
-    const costRaw = scenario.costs?.totalYear1 || scenario.costs?.total || scenario.cost || "";
-    const costDisplay = typeof costRaw === "number" ? `$${(costRaw / 1e3).toFixed(0)}K` : costRaw;
-    const timelineDisplay = typeof scenario.timeline === "string" ? scenario.timeline : scenario.timeline?.total || "";
-    const roiDisplay = scenario.roiProjection?.estimate || scenario.roiProjection?.paybackPeriod || scenario.roi_month || "";
-    tableHTML += `
-            <tr style="background: ${isRecommended ? "rgba(226, 115, 8, 0.08)" : "transparent"}; border-bottom: 1px solid #e0e0e0;">
-                <td style="padding: 10px 12px; font-weight: 600;">${isRecommended ? "\u2605 " : ""}${scenario.label}</td>
-                <td style="padding: 10px 12px; text-align: right;">${costDisplay}</td>
-                <td style="padding: 10px 12px;">${timelineDisplay}</td>
-                <td style="padding: 10px 12px; text-align: right; color: #28a745; font-weight: 600;">${roiDisplay}</td>
-            </tr>
-        `;
-  });
-  tableHTML += `
-            </tbody>
-        </table>
-    `;
-  return {
-    type: "html",
-    html: tableHTML
-  };
-}
-function initializeCharts() {
-  const chartData = {
-    operational: 68,
-    acquisition: 52,
-    digital: 45,
-    practice_readiness: 71
-  };
-  if (document.getElementById("dimension-radar")) {
-    const radarChart = createDimensionRadarChart(chartData);
-    Plotly.newPlot("dimension-radar", radarChart.data, radarChart.layout, radarChart.config);
-  }
-  if (document.getElementById("market-comparison")) {
-    const marketChart = createMarketComparisonChart({});
-    Plotly.newPlot("market-comparison", marketChart.data, marketChart.layout, marketChart.config);
-  }
-  if (document.getElementById("implementation-gantt")) {
-    const ganttChart = createImplementationGanttChart({});
-    Plotly.newPlot("implementation-gantt", ganttChart.data, ganttChart.layout, ganttChart.config);
-  }
-}
-var ARCHIFICIALS_COLORS, PLOTLY_LAYOUT_DEFAULTS, PLOTLY_CONFIG;
-var init_charts = __esm({
-  "reports/engine/charts.js"() {
-    ARCHIFICIALS_COLORS = {
-      primary: "#1a1a2e",
-      accent: "#e27308",
-      accentHover: "#c96407",
-      bgLight: "#f8f9fa",
-      card: "#ffffff",
-      text: "#1a1a2e",
-      textLight: "#6c757d",
-      border: "#e0e0e0",
-      success: "#28a745",
-      // Tier colors
-      tier1: "#f4c089",
-      // Getting Started
-      tier2: "#f0a050",
-      // Building Foundations
-      tier3: "#e27308",
-      // Accelerating
-      tier4: "#a85206"
-      // Leading
-    };
-    PLOTLY_LAYOUT_DEFAULTS = {
-      font: {
-        family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        color: ARCHIFICIALS_COLORS.text,
-        size: 12
-      },
-      paper_bgcolor: "transparent",
-      plot_bgcolor: "transparent",
-      margin: { l: 60, r: 40, t: 40, b: 60 },
-      showlegend: true,
-      legend: {
-        orientation: "h",
-        y: -0.15,
-        x: 0.5,
-        xanchor: "center"
-      },
-      hovermode: "closest"
-    };
-    PLOTLY_CONFIG = {
-      responsive: true,
-      displayModeBar: true,
-      displaylogo: false,
-      modeBarButtonsToRemove: ["pan2d", "lasso2d"]
-    };
-    if (typeof document !== "undefined") {
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initializeCharts);
-      } else {
-        initializeCharts();
-      }
-    }
-  }
-});
+Include chart data blocks for:
+- Dimension scores radar chart
+- Tool cost comparison bar chart
+- ROI projection over 24 months (line chart data)
+- Scenario cost comparison
 
-// reports/engine/assembler.js
-var assembler_exports = {};
-__export(assembler_exports, {
-  assemblePresentation: () => assemblePresentation
-});
-function generateChartsUtilities() {
-  const parts = [];
-  parts.push("const ARCHIFICIALS_COLORS = " + JSON.stringify(ARCHIFICIALS_COLORS) + ";");
-  parts.push("const PLOTLY_LAYOUT_DEFAULTS = " + JSON.stringify(PLOTLY_LAYOUT_DEFAULTS) + ";");
-  parts.push("const PLOTLY_CONFIG = " + JSON.stringify(PLOTLY_CONFIG) + ";");
-  parts.push(createDimensionRadarChart.toString());
-  parts.push(createDimensionBarChart.toString());
-  parts.push(createTierGaugeChart.toString());
-  parts.push(createMarketComparisonChart.toString());
-  parts.push(createROIProjectionChart.toString());
-  parts.push(createImplementationGanttChart.toString());
-  parts.push(createCostComparisonChart.toString());
-  parts.push(`
-function initializeCharts(){
-    document.querySelectorAll('[data-chart]').forEach(el=>{
-        try{
-            const cfg = JSON.parse(el.getAttribute('data-chart'));
-            Plotly.newPlot(el.id, cfg.data, cfg.layout, cfg.config);
-        }catch(e){console.error('Chart init error',e);}
-    });
-}
-if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded', initializeCharts);
-}else{
-    initializeCharts();
-}
-`);
-  return parts.join("\n");
-}
-function normalizeClaudeResponse(response) {
-  if (!response) return {};
-  if (response.raw) {
-    const match = response.raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (match) {
-      try {
-        return JSON.parse(match[1]);
-      } catch (e) {
-      }
-    }
-    try {
-      return JSON.parse(response.raw);
-    } catch (e) {
-    }
-    return {};
-  }
-  return response;
-}
-function esc(str) {
-  if (!str) return "";
-  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-function titleSlide(text, subtext, date) {
-  return `
-<section class="slide-title">
-    <div class="slide-title-content">
-        <div class="logo-anchor">ARCHIFICIALS</div>
-        <h1>${esc(text)}</h1>
-        ${subtext ? `<p class="subtitle">${esc(subtext)}</p>` : ""}
-        ${date ? `<div class="meta">
-            <div class="meta-item"><span class="meta-label">Report Generated:</span> ${esc(date)}</div>
-            <div class="meta-item"><span class="meta-label">Status:</span> Confidential</div>
-        </div>` : ""}
-    </div>
-</section>
+## Citation Format
+All claims must include inline citations: \`[Source: URL]\`
+Include a numbered References section at the end of the report.
+
+## Images
+When you find relevant images during research (charts, infographics, tool screenshots), include the image URL with this format:
+\`![Description](URL)\`
+Include attribution: \`*Source: [Publication Name](URL)*\`
 `;
-}
-function dividerSlide(title, subtitle = "", sectionNum = "") {
-  return `
-<section class="slide-divider">
-    ${sectionNum ? `<div class="section-number">${esc(sectionNum)}</div>` : ""}
-    <h1>${esc(title)}</h1>
-    ${subtitle ? `<p>${esc(subtitle)}</p>` : ""}
-</section>
-`;
-}
-function contentSlide(title, bullets = [], description = "") {
-  const validBullets = bullets.filter((b) => b && String(b).trim());
-  let bodyHtml = "";
-  if (description) {
-    bodyHtml += `<p>${description}</p>`;
-  }
-  if (validBullets.length === 1) {
-    bodyHtml += `<p>${validBullets[0]}</p>`;
-  } else if (validBullets.length > 1) {
-    bodyHtml += `<ul>${validBullets.slice(0, 8).map((b) => `<li>${b}</li>`).join("")}</ul>`;
-  }
-  if (!bodyHtml) {
-    bodyHtml = '<p style="color: var(--text-light); font-style: italic;">Content pending research data.</p>';
-  }
-  return `
-<section class="slide-content">
-    <h2>${esc(title)}</h2>
-    ${bodyHtml}
-</section>
-`;
-}
-function chartSlide(title, chartId, description = "") {
-  return `
-<section class="slide-content">
-    <h2>${esc(title)}</h2>
-    <div class="chart-container">
-        <div id="${chartId}" class="plotly-graph-div"></div>
-        ${description ? `<div class="chart-source">${esc(description)}</div>` : ""}
-    </div>
-</section>
-`;
-}
-function splitSlide(title, leftHtml, rightHtml) {
-  return `
-<section class="slide-content">
-    <h2>${esc(title)}</h2>
-    <div class="grid-2">
-        <div>${leftHtml}</div>
-        <div>${rightHtml}</div>
-    </div>
-</section>
-`;
-}
-function scoreCardsSlide(title, cards) {
-  const cardsHtml = cards.map((c) => {
-    const tierClass = c.score <= 24 ? "tier-1" : c.score <= 49 ? "tier-2" : c.score <= 74 ? "tier-3" : "tier-4";
-    return `<div class="score-card ${tierClass}">
-            <div class="score-label">${esc(c.label)}</div>
-            <div class="score-value">${c.score}<span class="score-suffix">/100</span></div>
-            <div class="score-tier">${esc(c.tier)}</div>
-        </div>`;
-  }).join("");
-  return `
-<section class="slide-content">
-    <h2>${esc(title)}</h2>
-    <div class="grid-${Math.min(cards.length, 4)}">
-        ${cardsHtml}
-    </div>
-</section>
-`;
-}
-function scenarioSlide(letter, scenario) {
-  if (!scenario) return "";
-  const isRecommended = letter === "C";
-  const tools = scenario.recommendedTools || scenario.tools || [];
-  const toolsList = Array.isArray(tools) ? tools.map((t) => typeof t === "string" ? t : t.name || t.tool || "").filter(Boolean).slice(0, 4) : [];
-  const tracks = scenario.tracks || [];
-  const tracksList = Array.isArray(tracks) ? tracks.map((t) => typeof t === "string" ? t : t.name || t.track || "").filter(Boolean).slice(0, 4) : [];
-  let detailHtml = "";
-  if (tracksList.length) {
-    detailHtml = `<h3 style="margin-top:16px;">Implementation Tracks</h3><ul>${tracksList.map((t) => `<li>${t}</li>`).join("")}</ul>`;
-  } else if (toolsList.length) {
-    detailHtml = `<h3 style="margin-top:16px;">Key Tools</h3><ul>${toolsList.map((t) => `<li>${t}</li>`).join("")}</ul>`;
-  }
-  const leftHtml = `
-        <div>
-            <h3>Philosophy</h3>
-            <p>${scenario.philosophy || scenario.description || ""}</p>
-            ${scenario.bestFor ? `<p style="margin-top:12px;"><strong>Best for:</strong> ${scenario.bestFor}</p>` : ""}
-            ${detailHtml}
-        </div>`;
-  const rightHtml = `
-        <div class="scenario-card${isRecommended ? " recommended" : ""}">
-            <h3>Scenario ${letter}: ${scenario.label || ""}</h3>
-            ${scenario.timeline ? `<p><strong>Timeline:</strong> ${typeof scenario.timeline === "string" ? scenario.timeline : scenario.timeline.total || scenario.timeline.length + " phases"}</p>` : ""}
-            ${scenario.strengths ? `<p><strong>Strengths:</strong> ${Array.isArray(scenario.strengths) ? scenario.strengths.slice(0, 2).join(", ") : scenario.strengths}</p>` : ""}
-            ${scenario.weaknesses ? `<p><strong>Considerations:</strong> ${Array.isArray(scenario.weaknesses) ? scenario.weaknesses.slice(0, 2).join(", ") : scenario.weaknesses}</p>` : ""}
-            ${scenario.canBundleWith ? `<p style="font-size:14px; color:var(--accent);"><strong>Bundles with:</strong> ${scenario.canBundleWith}</p>` : ""}
-            <div class="cost">${scenario.costs?.totalYear1 || scenario.costs?.total || scenario.cost || "Contact for pricing"}</div>
-        </div>`;
-  return splitSlide(`Scenario ${letter}: ${scenario.label || ""}`, leftHtml, rightHtml);
-}
-function assemblePresentation(data) {
-  const {
-    assessment,
-    scores = {},
-    vertical,
-    clientName,
-    date
-  } = data;
-  const marketAnalysis = normalizeClaudeResponse(data.marketAnalysis);
-  const deploymentScenarios = normalizeClaudeResponse(data.deploymentScenarios);
-  const meetingBrief = normalizeClaudeResponse(data.meetingBrief);
-  function getTierLabel(score) {
-    if (score > 74) return "Leading";
-    if (score > 49) return "Accelerating";
-    if (score > 24) return "Building Foundations";
-    return "Getting Started";
-  }
-  const overallScore = scores.operational && scores.acquisition && scores.digital && scores.practice_readiness ? Math.round((scores.operational + scores.acquisition + scores.digital + scores.practice_readiness) / 4) : scores.overall || 0;
-  const execBullets = [];
-  if (meetingBrief.executiveSummary) {
-    meetingBrief.executiveSummary.split(/\.(?!\d)/).map((s) => s.trim()).filter((s) => s.length > 10).slice(0, 6).forEach((s) => execBullets.push(s + "."));
-  }
-  const opportunityBullets = (marketAnalysis.gapsOpportunities || []).map(
-    (item) => typeof item === "string" ? item : item.opportunity || item.description || item.gap || JSON.stringify(item)
-  );
-  const slides = [];
-  slides.push(titleSlide("AI Readiness Assessment", clientName, date));
-  slides.push(dividerSlide("Executive Summary", "Key findings from your AI readiness assessment", "Section 01"));
-  if (execBullets.length > 0) {
-    slides.push(contentSlide("Key Findings", execBullets));
-  } else {
-    slides.push(contentSlide("Key Findings", [
-      `Overall AI readiness score: ${overallScore}/100 (${getTierLabel(overallScore)})`,
-      `Strongest dimension: ${scores.operational >= scores.acquisition && scores.operational >= scores.digital && scores.operational >= scores.practice_readiness ? "Operational Efficiency" : scores.practice_readiness >= scores.acquisition && scores.practice_readiness >= scores.digital ? "Practice Readiness" : scores.acquisition >= scores.digital ? "Client Acquisition" : "Digital Visibility"}`,
-      `Primary opportunity area identified for immediate improvement`,
-      `Custom deployment scenarios developed based on your profile`
-    ]));
-  }
-  slides.push(dividerSlide("Assessment Results", "Your current AI readiness across 4 strategic dimensions", "Section 02"));
-  slides.push(chartSlide("Overall AI Readiness", "overall-gauge", "Based on assessment questionnaire analysis"));
-  slides.push(chartSlide("Dimension Scores", "dimension-radar", "Assessment across 4 strategic dimensions"));
-  slides.push(scoreCardsSlide("Dimensional Breakdown", [
-    { label: "Operational Efficiency", score: scores.operational || 0, tier: getTierLabel(scores.operational || 0) },
-    { label: "Client/Student Acquisition", score: scores.acquisition || 0, tier: getTierLabel(scores.acquisition || 0) },
-    { label: "Digital Visibility", score: scores.digital || 0, tier: getTierLabel(scores.digital || 0) },
-    { label: "Practice/Institutional Readiness", score: scores.practice_readiness || 0, tier: getTierLabel(scores.practice_readiness || 0) }
-  ]));
-  if (scores.insight_operational || scores.insight_acquisition) {
-    const dimInsights = [
-      scores.insight_operational,
-      scores.insight_acquisition,
-      scores.insight_digital,
-      scores.insight_practice_readiness
-    ].filter(Boolean);
-    if (dimInsights.length > 0) {
-      slides.push(contentSlide("Dimension Insights", dimInsights));
     }
-  }
-  if (opportunityBullets.length > 0) {
-    slides.push(contentSlide("Top Opportunities", opportunityBullets));
-  } else if (scores.top_opportunities && Array.isArray(scores.top_opportunities) && scores.top_opportunities.length > 0) {
-    slides.push(contentSlide("Top Opportunities", scores.top_opportunities.map(
-      (o) => typeof o === "string" ? o : o.opportunity || o.description || JSON.stringify(o)
-    )));
-  }
-  slides.push(dividerSlide("Market Landscape", "Industry trends and competitive landscape analysis", "Section 03"));
-  const industryContent = marketAnalysis.industryOverview?.summary || marketAnalysis.industryOverview?.overview || (typeof marketAnalysis.industryOverview === "string" ? marketAnalysis.industryOverview : "");
-  slides.push(contentSlide("Industry AI Adoption", industryContent ? [industryContent] : ["AI adoption trends analysis based on current market research"]));
-  const competitorContent = marketAnalysis.competitorLandscape?.summary || marketAnalysis.competitorLandscape?.overview || (typeof marketAnalysis.competitorLandscape === "string" ? marketAnalysis.competitorLandscape : "");
-  if (competitorContent) {
-    slides.push(contentSlide("Competitive Landscape", [competitorContent]));
-  }
-  const toolContent = marketAnalysis.toolLandscape?.summary || marketAnalysis.toolLandscape?.overview || (typeof marketAnalysis.toolLandscape === "string" ? marketAnalysis.toolLandscape : "");
-  if (toolContent) {
-    slides.push(contentSlide("AI Tool Landscape", [toolContent]));
-  }
-  if (marketAnalysis.toolLandscape?.tools && Array.isArray(marketAnalysis.toolLandscape.tools)) {
-    const toolBullets = marketAnalysis.toolLandscape.tools.slice(0, 6).map(
-      (t) => typeof t === "string" ? t : `<strong>${t.name || t.tool}</strong> \u2014 ${t.description || t.use || t.category || ""}`
-    );
-    if (toolBullets.length > 0) {
-      slides.push(contentSlide("Key AI Tools in Market", toolBullets));
+    function buildQualityRequirements() {
+      return `
+---
+
+# PART 3: SOURCE & QUALITY REQUIREMENTS
+
+## Citation Requirements
+- **Every statistic, market figure, and factual claim** must include an inline citation with a clickable URL: \`[Source: URL]\`
+- **Minimum sources per section:** 3 (except Section 8 which uses Archificials' own positioning data)
+- **Total minimum sources for entire report:** 25+
+- Include a numbered References section at the end
+
+## Recency Requirements
+- **Preferred:** Sources published after January 2025
+- **Acceptable:** Sources from 2024 if more recent data is unavailable
+- **Flag explicitly:** Any data older than 24 months with a note: "(Note: 2023 data \u2014 verify for updates)"
+- **Tool pricing:** Must be verified against current vendor websites or recent (2025-2026) reviews
+
+## Geographic Relevance
+- **Section 5 (Competitor Landscape):** MUST use geographically relevant data (see Section 1.4)
+- **All sections:** Prefer regional/national data for the client's country; flag international data clearly
+
+## Image & Visual Requirements
+- Include URLs for relevant images found during research (charts, infographics, logos)
+- Attribution required for all images
+- Prefer high-resolution sources (official publications, vendor materials)
+
+## Quality Standards
+- **Substantive paragraphs:** 3-5 sentences minimum per paragraph. No filler.
+- **Specific numbers:** "$26.28B" not "billions of dollars"
+- **Named tools:** "Harvey AI ($30K-$300K/year)" not "enterprise AI tools"
+- **Honest assessment:** Include genuine weaknesses and limitations, not just sales language
+- **Personalized:** Reference the client's specific scores and signals throughout
+- **Actionable:** Every section should include specific recommendations, not just observations
+
+## Length Guidelines
+- **Total report:** 8,000-15,000 words
+- **Per section:** 500-1,500 words depending on complexity
+- **Tables:** At least 6-8 data tables throughout the report
+- **Meeting brief (Section 10):** 1,500-2,500 words (this is the most tactical section)
+
+---
+
+*End of research brief. Begin research execution now.*
+`;
     }
-  }
-  if (marketAnalysis.regulatoryCompliance) {
-    const regContent = marketAnalysis.regulatoryCompliance.summary || (typeof marketAnalysis.regulatoryCompliance === "string" ? marketAnalysis.regulatoryCompliance : "");
-    if (regContent) {
-      slides.push(contentSlide("Regulatory & Compliance", [regContent]));
+    function generatePromptDocument(assessmentData) {
+      const vertical = assessmentData.vertical || "law-firm";
+      const vk = VERTICAL_KNOWLEDGE[vertical] || VERTICAL_KNOWLEDGE["law-firm"];
+      const sections = [
+        buildHeader(assessmentData),
+        buildRoleBlock(vertical),
+        buildClientContext(assessmentData),
+        buildGeographicIntelligence(assessmentData),
+        buildResearchSection_ExecutiveSummary(vk),
+        buildResearchSection_ToolLandscape(vk),
+        buildResearchSection_ClientAcquisition(vk),
+        buildResearchSection_AISearch(vk),
+        buildResearchSection_CompetitorLandscape(vk, assessmentData),
+        buildResearchSection_RegulatoryCompliance(vk),
+        buildResearchSection_PricingAnalysis(vk, assessmentData),
+        buildResearchSection_StrategicPositioning(),
+        buildDeploymentScenarios(vk, assessmentData),
+        buildMeetingBrief(assessmentData),
+        buildOutputFormat(),
+        buildQualityRequirements()
+      ];
+      return sections.join("\n");
     }
-  }
-  slides.push(dividerSlide("Deployment Scenarios", "6 implementation pathways tailored to your needs", "Section 04"));
-  const scenarioLetters = ["A", "B", "C", "D", "E", "F"];
-  const scenarioKeys = ["scenarioA", "scenarioB", "scenarioC", "scenarioD", "scenarioE", "scenarioF"];
-  const hasScenarios = scenarioKeys.some((k) => deploymentScenarios[k]);
-  if (hasScenarios) {
-    scenarioLetters.forEach((letter, idx) => {
-      const scenario = deploymentScenarios[scenarioKeys[idx]];
-      if (scenario) {
-        slides.push(scenarioSlide(letter, scenario));
-      }
-    });
-    slides.push(chartSlide("Investment Comparison", "cost-comparison", "Estimated first-year investment across scenarios"));
-    slides.push(chartSlide("ROI Projection", "roi-projection", "Projected return on investment over 24 months"));
-    slides.push(chartSlide("Implementation Timeline", "implementation-gantt", "Phased implementation roadmap"));
-  } else {
-    slides.push(contentSlide("Deployment Scenarios", [
-      "Scenario A: Off-the-Shelf AI Stack \u2014 Quick wins with proven tools",
-      "Scenario B: Custom AI Platform \u2014 Tailored solution built by Archificials",
-      "Scenario C: Hybrid Approach \u2014 Balanced blend of speed and customization",
-      "Scenario D: AI-First Transformation \u2014 Full organizational transformation",
-      "Scenario E: AI-Powered Client Acquisition & SEO \u2014 External growth focus",
-      "Scenario F: AEO & GEO Infrastructure \u2014 Own AI-mediated search"
-    ], "Detailed scenarios with timelines and costs will be presented during consultation."));
-  }
-  slides.push(dividerSlide("Recommended Path Forward", "Our recommendation based on your assessment profile", "Section 05"));
-  const recScenario = meetingBrief.recommendedScenario || {};
-  if (recScenario.scenario || recScenario.reasoning) {
-    slides.push(contentSlide(
-      `Recommended: Scenario ${recScenario.scenario || "C"}`,
-      [recScenario.reasoning || "Based on your assessment profile, we recommend a balanced approach combining quick wins with strategic custom development."]
-    ));
-  } else {
-    slides.push(contentSlide(
-      "Recommended Approach",
-      ["Based on your assessment results, we recommend starting with a balanced approach that combines proven tools with targeted custom development to maximize ROI while managing risk."]
-    ));
-  }
-  const agenda = meetingBrief.meetingAgenda || [];
-  if (agenda.length > 0) {
-    slides.push(contentSlide(
-      "Immediate Next Steps",
-      agenda.map((item) => typeof item === "string" ? item : item.topic || item.step || item.action || JSON.stringify(item))
-    ));
-  } else {
-    slides.push(contentSlide("Immediate Next Steps", [
-      "Schedule a strategy session with our team",
-      "Review detailed proposal document",
-      "Define success metrics and milestones",
-      "Begin phased implementation"
-    ]));
-  }
-  slides.push(contentSlide("What Archificials Delivers", [
-    "AI strategy consulting tailored to your industry",
-    "Custom platform development and integration",
-    "Data pipeline architecture and optimization",
-    "Ongoing training, support, and performance monitoring",
-    "Measurable ROI tracking and continuous improvement"
-  ]));
-  slides.push(`
-<section class="slide-title">
-    <div class="slide-title-content">
-        <div class="logo-anchor">ARCHIFICIALS</div>
-        <h1>Ready to Transform?</h1>
-        <p class="subtitle">Let's discuss which pathway aligns with your vision</p>
-        <div class="meta">
-            <div class="meta-item"><span class="meta-label">Email:</span> hello@archificials.com</div>
-            <div class="meta-item"><span class="meta-label">Web:</span> archificials.com</div>
-        </div>
-        <div style="margin-top: 40px;">
-            <span style="font-size: 13px; color: rgba(255,255,255,0.4);">Confidential \u2014 Prepared for ${esc(clientName)}</span>
-        </div>
-    </div>
-</section>
-`);
-  const slidesHtml = slides.join("\n");
-  const chartConfigs = {
-    "overall-gauge": createTierGaugeChart(scores),
-    "dimension-radar": createDimensionRadarChart(scores)
-  };
-  if (hasScenarios) {
-    chartConfigs["cost-comparison"] = createCostComparisonChart({ scenarios: deploymentScenarios });
-    const scenarioC = deploymentScenarios.scenarioC || deploymentScenarios.scenarioB || {};
-    chartConfigs["roi-projection"] = createROIProjectionChart({
-      months: scenarioC.timeline?.map?.((t) => t.phase) || [],
-      roi: scenarioC.roiProjection ? [parseFloat(scenarioC.roiProjection.estimate || scenarioC.roiProjection) || 0] : [],
-      investment: scenarioC.costs ? [parseFloat(scenarioC.costs.totalYear1 || scenarioC.costs.total || 0) || 0] : []
-    });
-    chartConfigs["implementation-gantt"] = createImplementationGanttChart({
-      phases: scenarioC.timeline?.map?.((t) => t.phase) || [],
-      startDates: scenarioC.timeline?.map?.((t) => t.start) || [],
-      endDates: scenarioC.timeline?.map?.((t) => t.end) || []
-    });
-  }
-  const chartsJsonScript = `(function(){
-        var charts = ${JSON.stringify(chartConfigs)};
-        Object.entries(charts).forEach(function(entry){
-            var id = entry[0], cfg = entry[1];
-            var el = document.getElementById(id);
-            if(!el || !cfg) return;
-            if(cfg.type === 'html' && cfg.html){
-                el.innerHTML = cfg.html;
-                el.style.overflow = 'auto';
-            } else if(cfg.data){
-                Plotly.newPlot(id, cfg.data, cfg.layout, cfg.config);
-            }
-        });
-    })();`;
-  const chartsUtilities = generateChartsUtilities();
-  let html = TEMPLATE_HTML.replace(/\{\{CLIENT_NAME\}\}/g, esc(clientName)).replace(/\{\{DATE\}\}/g, esc(date)).replace("{{SLIDES_HTML}}", slidesHtml).replace("{{CHARTS_UTILITIES}}", chartsUtilities).replace("{{CHARTS_JSON}}", chartsJsonScript);
-  return html;
-}
-var TEMPLATE_HTML;
-var init_assembler = __esm({
-  "reports/engine/assembler.js"() {
-    init_charts();
-    TEMPLATE_HTML = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{CLIENT_NAME}} \u2014 AI Readiness Assessment Report</title>
-    <meta name="description" content="Confidential AI readiness assessment and recommendations for {{CLIENT_NAME}}">
-
-    <!-- reveal.js CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/black.css">
-
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <!-- Plotly.js -->
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"><\/script>
-
-    <style>
-        /* ============================================
-           Archificials Brand Color Palette
-           ============================================ */
-        :root {
-            --primary: #1a1a2e;
-            --primary-light: #2d2d4a;
-            --accent: #e27308;
-            --accent-hover: #c96407;
-            --accent-light: rgba(226, 115, 8, 0.12);
-            --bg-light: #f8f9fa;
-            --bg-warm: #fefcf9;
-            --card: #ffffff;
-            --text: #1a1a2e;
-            --text-body: #333333;
-            --text-light: #6c757d;
-            --border: #e0e0e0;
-            --border-light: #f0f0f0;
-            --success: #28a745;
-            --info: #3498db;
-
-            /* Tier Colors */
-            --tier-1: #f4c089;
-            --tier-2: #f0a050;
-            --tier-3: #e27308;
-            --tier-4: #a85206;
-        }
-
-        /* ============================================
-           Base Typography & Layout
-           ============================================ */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html, body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: var(--primary);
-            color: var(--text-body);
-        }
-
-        /* ============================================
-           Reveal.js Overrides
-           ============================================ */
-        .reveal {
-            width: 100% !important;
-            height: 100% !important;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-
-        .reveal .slides {
-            width: 100%;
-            height: 100%;
-            text-align: left;
-        }
-
-        .reveal section {
-            padding: 50px 60px !important;
-            height: 100% !important;
-            width: 100% !important;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            box-sizing: border-box;
-        }
-
-        /* ============================================
-           Slide Backgrounds & Layouts
-           ============================================ */
-        .slide-content {
-            background: var(--card);
-            color: var(--text-body);
-            padding: 50px 60px;
-            border-radius: 12px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-            max-width: 1200px;
-            width: 100%;
-            position: relative;
-            text-align: left;
-        }
-
-        .slide-content::before {
-            content: 'ARCHIFICIALS';
-            position: absolute;
-            top: 20px;
-            right: 30px;
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--accent);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            opacity: 0.7;
-        }
-
-        .slide-divider {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 60%, #16213e 100%) !important;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .slide-divider::before {
-            content: '';
-            position: absolute;
-            top: -30%;
-            right: -10%;
-            width: 400px;
-            height: 400px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(226,115,8,0.08) 0%, transparent 70%);
-            pointer-events: none;
-        }
-
-        .slide-divider h1 {
-            color: var(--card);
-            font-size: 52px;
-            font-weight: 800;
-            margin-bottom: 20px;
-            position: relative;
-            padding-bottom: 30px;
-            letter-spacing: -0.5px;
-        }
-
-        .slide-divider h1::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60px;
-            height: 4px;
-            background: var(--accent);
-            border-radius: 2px;
-        }
-
-        .slide-divider p {
-            color: rgba(255,255,255,0.7);
-            font-size: 20px;
-            max-width: 600px;
-            text-align: center;
-            font-weight: 300;
-            line-height: 1.5;
-        }
-
-        .slide-divider .section-number {
-            position: absolute;
-            top: 40px;
-            left: 60px;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--accent);
-            text-transform: uppercase;
-            letter-spacing: 3px;
-        }
-
-        /* ============================================
-           Title Slide
-           ============================================ */
-        .slide-title {
-            background: linear-gradient(135deg, var(--primary) 0%, #0f0f1f 100%) !important;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .slide-title::after {
-            content: '';
-            position: absolute;
-            bottom: -50%;
-            left: -20%;
-            width: 600px;
-            height: 600px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(226,115,8,0.06) 0%, transparent 70%);
-            pointer-events: none;
-        }
-
-        .slide-title-content {
-            text-align: center;
-            color: var(--card);
-            width: 100%;
-            position: relative;
-            z-index: 1;
-        }
-
-        .logo-anchor {
-            font-size: 13px;
-            color: var(--accent);
-            font-weight: 700;
-            margin-bottom: 40px;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-        }
-
-        .slide-title h1 {
-            font-size: 54px;
-            font-weight: 800;
-            margin: 20px 0;
-            color: var(--card);
-            letter-spacing: -1px;
-            line-height: 1.1;
-        }
-
-        .slide-title .subtitle {
-            font-size: 26px;
-            color: rgba(255,255,255,0.85);
-            margin: 20px 0;
-            font-weight: 300;
-        }
-
-        .slide-title .meta {
-            font-size: 15px;
-            color: rgba(255,255,255,0.5);
-            margin-top: 50px;
-            border-top: 1px solid rgba(255,255,255,0.15);
-            padding-top: 25px;
-            display: flex;
-            justify-content: center;
-            gap: 40px;
-        }
-
-        .slide-title .meta-item {
-            margin: 0;
-        }
-
-        .slide-title .meta-label {
-            color: var(--accent);
-            font-weight: 600;
-        }
-
-        /* ============================================
-           Content Slide Styles
-           ============================================ */
-        .slide-content h1,
-        .slide-content h2 {
-            color: var(--primary);
-            font-weight: 700;
-            margin-bottom: 24px;
-            letter-spacing: -0.3px;
-        }
-
-        .slide-content h1 {
-            font-size: 38px;
-        }
-
-        .slide-content h2 {
-            font-size: 30px;
-            position: relative;
-            padding-bottom: 16px;
-        }
-
-        .slide-content h2::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 40px;
-            height: 3px;
-            background: var(--accent);
-            border-radius: 2px;
-        }
-
-        .slide-content h3 {
-            color: var(--accent);
-            font-size: 20px;
-            font-weight: 600;
-            margin: 20px 0 12px 0;
-        }
-
-        .slide-content p {
-            color: var(--text-body);
-            font-size: 18px;
-            line-height: 1.7;
-            margin: 12px 0;
-        }
-
-        .slide-content li {
-            color: var(--text-body);
-            font-size: 18px;
-            line-height: 1.6;
-            margin: 10px 0;
-        }
-
-        .slide-content ul,
-        .slide-content ol {
-            margin-left: 24px;
-            margin-top: 16px;
-            margin-bottom: 16px;
-        }
-
-        .slide-content li {
-            margin-bottom: 10px;
-            padding-left: 8px;
-        }
-
-        .slide-content li::marker {
-            color: var(--accent);
-            font-weight: 700;
-        }
-
-        /* ============================================
-           Chart Container
-           ============================================ */
-        .chart-container {
-            margin: 24px 0;
-            padding: 24px;
-            background: var(--bg-warm);
-            border-radius: 10px;
-            border: 1px solid var(--border-light);
-            width: 100%;
-        }
-
-        .chart-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 12px;
-        }
-
-        .plotly-graph-div {
-            width: 100% !important;
-            height: 450px !important;
-        }
-
-        .chart-source {
-            font-size: 13px;
-            color: var(--text-light);
-            margin-top: 12px;
-            border-top: 1px solid var(--border-light);
-            padding-top: 10px;
-            font-style: italic;
-        }
-
-        .source-link {
-            color: var(--accent);
-            text-decoration: none;
-        }
-
-        .source-link:hover {
-            color: var(--accent-hover);
-            text-decoration: underline;
-        }
-
-        /* ============================================
-           Data Display Cards
-           ============================================ */
-        .score-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 24px 20px;
-            margin: 0;
-            text-align: center;
-            flex: 1;
-            min-width: 200px;
-            transition: box-shadow 0.2s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .score-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: var(--border);
-        }
-
-        .score-card.tier-1::before { background: var(--tier-1); }
-        .score-card.tier-2::before { background: var(--tier-2); }
-        .score-card.tier-3::before { background: var(--tier-3); }
-        .score-card.tier-4::before { background: var(--tier-4); }
-
-        .score-card.tier-1 { border-color: var(--tier-1); }
-        .score-card.tier-2 { border-color: var(--tier-2); }
-        .score-card.tier-3 { border-color: var(--tier-3); }
-        .score-card.tier-4 { border-color: var(--tier-4); }
-
-        .score-label {
-            font-size: 12px;
-            font-weight: 700;
-            color: var(--text-light);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin-bottom: 10px;
-        }
-
-        .score-value {
-            font-size: 42px;
-            font-weight: 800;
-            color: var(--primary);
-            margin: 8px 0;
-            letter-spacing: -1px;
-        }
-
-        .score-tier {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--accent);
-            margin-top: 4px;
-        }
-
-        .score-suffix {
-            font-size: 18px;
-            font-weight: 400;
-            color: var(--text-light);
-        }
-
-        /* ============================================
-           Grid & Flex Utilities
-           ============================================ */
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin: 20px 0;
-        }
-
-        .grid-3 {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 20px;
-            margin: 20px 0;
-        }
-
-        .grid-4 {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-            gap: 16px;
-            margin: 20px 0;
-        }
-
-        .flex-row {
-            display: flex;
-            gap: 15px;
-            margin: 15px 0;
-        }
-
-        /* ============================================
-           Table Styles
-           ============================================ */
-        .slide-content table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            background: var(--card);
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid var(--border);
-        }
-
-        .slide-content th {
-            background: var(--primary);
-            color: var(--card);
-            padding: 14px 16px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .slide-content td {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border-light);
-            font-size: 15px;
-        }
-
-        .slide-content tr:nth-child(even) {
-            background: var(--bg-light);
-        }
-
-        /* ============================================
-           CTA & Buttons
-           ============================================ */
-        .cta-button {
-            display: inline-block;
-            background: var(--accent);
-            color: var(--card);
-            padding: 14px 32px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 16px;
-            margin: 15px 8px;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
-            letter-spacing: 0.3px;
-        }
-
-        .cta-button:hover {
-            background: var(--accent-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(226, 115, 8, 0.3);
-        }
-
-        .cta-button.secondary {
-            background: transparent;
-            color: var(--accent);
-            border: 2px solid var(--accent);
-        }
-
-        .cta-button.secondary:hover {
-            background: var(--accent-light);
-        }
-
-        /* ============================================
-           Scenario Card (special layout)
-           ============================================ */
-        .scenario-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 24px;
-            text-align: left;
-        }
-
-        .scenario-card h3 {
-            margin: 0 0 8px 0;
-            font-size: 18px;
-        }
-
-        .scenario-card p {
-            font-size: 15px;
-            line-height: 1.5;
-            margin: 6px 0;
-        }
-
-        .scenario-card .cost {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--accent);
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid var(--border-light);
-        }
-
-        .scenario-card.recommended {
-            border-color: var(--accent);
-            box-shadow: 0 2px 12px rgba(226, 115, 8, 0.1);
-        }
-
-        .scenario-card.recommended::before {
-            content: 'RECOMMENDED';
-            display: block;
-            font-size: 10px;
-            font-weight: 700;
-            color: var(--card);
-            background: var(--accent);
-            padding: 3px 10px;
-            border-radius: 4px;
-            margin-bottom: 12px;
-            width: fit-content;
-            letter-spacing: 1px;
-        }
-
-        /* ============================================
-           Slide Footer & Header
-           ============================================ */
-        .reveal .slide-number {
-            background: transparent;
-            color: rgba(255,255,255,0.3);
-            font-size: 12px;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .slide-footer {
-            position: absolute;
-            bottom: 16px;
-            left: 60px;
-            right: 60px;
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            color: var(--text-light);
-            pointer-events: none;
-            opacity: 0.6;
-        }
-
-        /* ============================================
-           Insight/Quote Block
-           ============================================ */
-        .insight-block {
-            background: var(--accent-light);
-            border-left: 4px solid var(--accent);
-            padding: 16px 20px;
-            border-radius: 0 8px 8px 0;
-            margin: 16px 0;
-        }
-
-        .insight-block p {
-            font-size: 16px;
-            font-style: italic;
-            color: var(--text-body);
-            margin: 0;
-        }
-
-        /* ============================================
-           Key Metric Row
-           ============================================ */
-        .metric-row {
-            display: flex;
-            gap: 24px;
-            margin: 16px 0;
-        }
-
-        .metric-item {
-            flex: 1;
-            text-align: center;
-            padding: 16px;
-            background: var(--bg-light);
-            border-radius: 8px;
-        }
-
-        .metric-item .value {
-            font-size: 28px;
-            font-weight: 800;
-            color: var(--primary);
-        }
-
-        .metric-item .label {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-light);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 4px;
-        }
-
-        /* ============================================
-           Reveal.js Print/PDF Overrides
-           ============================================ */
-        @media print {
-            .reveal section {
-                page-break-after: always;
-                padding: 40px !important;
-            }
-
-            .slide-footer {
-                display: none;
-            }
-
-            .chart-container {
-                page-break-inside: avoid;
-            }
-        }
-
-        /* ============================================
-           Reveal.js Speaker Notes (Hidden)
-           ============================================ */
-        .notes {
-            display: none;
-        }
-    </style>
-</head>
-<body>
-    <div class="reveal">
-        <div class="slides">
-            {{SLIDES_HTML}}
-        </div>
-    </div>
-
-    <!-- Reveal.js -->
-    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5"><\/script>
-
-    <!-- Archificials Plotly Chart Utilities -->
-    <script>
-        {{CHARTS_UTILITIES}}
-    <\/script>
-
-    <!-- Initialize Reveal.js -->
-    <script>
-        Reveal.initialize({
-            width: 1920,
-            height: 1080,
-            margin: 0.04,
-            minScale: 0.2,
-            maxScale: 2.0,
-            hash: true,
-            keyboard: true,
-            center: true,
-            transition: 'slide',
-            transitionSpeed: 'default',
-            slideNumber: 'c/t',
-            overview: true
-        });
-    <\/script>
-
-    <!-- Chart Data & Population -->
-    <script>
-        {{CHARTS_JSON}}
-    <\/script>
-</body>
-</html>`;
+    module.exports = { generatePromptDocument };
   }
 });
 
@@ -2616,26 +1097,6 @@ async function validateToken(id, token, timestamp, secret) {
     return false;
   }
 }
-async function braveSearch(query, apiKey) {
-  try {
-    const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=10`;
-    const res = await fetch(url, { headers: { "X-Subscription-Token": apiKey } });
-    if (!res.ok) {
-      console.error(`Brave API error: ${res.status}`);
-      return [];
-    }
-    const data = await res.json();
-    return data.web?.results?.map((r) => ({
-      title: r.title,
-      url: r.url,
-      description: r.description,
-      age: r.age
-    })) || [];
-  } catch (e) {
-    console.error("Brave search error:", e);
-    return [];
-  }
-}
 async function fetchAssessmentRecord(baseId, tableName, recordId, apiKey) {
   try {
     const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}/${recordId}`;
@@ -2649,126 +1110,6 @@ async function fetchAssessmentRecord(baseId, tableName, recordId, apiKey) {
     console.error("Airtable fetch error:", e);
     return null;
   }
-}
-async function callClaudeAPI(systemPrompt, userPrompt, apiKey, maxTokens = 4096) {
-  const enhancedSystem = systemPrompt + "\n\nCRITICAL: Output ONLY raw JSON. No markdown, no ```json blocks, no text before or after. Start with { and end with }.";
-  const body = JSON.stringify({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: maxTokens,
-    stream: true,
-    system: enhancedSystem,
-    messages: [{ role: "user", content: userPrompt }]
-  });
-  console.log(`Claude API call (streaming): ${body.length} bytes, maxTokens=${maxTokens}`);
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      const start = Date.now();
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          "content-type": "application/json"
-        },
-        body
-      });
-      if (res.status === 524 || res.status === 502 || res.status === 503) {
-        const elapsed2 = Date.now() - start;
-        console.log(`Claude API stream error: ${res.status} in ${elapsed2}ms (attempt ${attempt})`);
-        if (attempt < 2) {
-          console.log("Retrying...");
-          continue;
-        }
-        return { _error: `Claude API ${res.status} after ${attempt} attempts` };
-      }
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error(`Claude API error: ${res.status} \u2014 ${errorText}`);
-        return { _error: `Claude API ${res.status}: ${errorText}` };
-      }
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let content = "";
-      let stopReason = null;
-      let outputTokens = 0;
-      let buffer = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const data = line.slice(6).trim();
-          if (data === "[DONE]") continue;
-          try {
-            const event = JSON.parse(data);
-            if (event.type === "content_block_delta" && event.delta?.text) {
-              content += event.delta.text;
-            } else if (event.type === "message_delta") {
-              stopReason = event.delta?.stop_reason || stopReason;
-              outputTokens = event.usage?.output_tokens || outputTokens;
-            } else if (event.type === "error") {
-              console.error("Stream error event:", JSON.stringify(event.error));
-              return { _error: `Stream error: ${event.error?.message || "unknown"}` };
-            }
-          } catch {
-          }
-        }
-      }
-      const elapsed = Date.now() - start;
-      console.log(`Claude API streamed: ${elapsed}ms, stop=${stopReason}, tokens=${outputTokens}, chars=${content.length}`);
-      if (!content) {
-        console.error("No content accumulated from stream");
-        return { _error: "No content in Claude stream response" };
-      }
-      if (stopReason === "max_tokens") {
-        console.warn("Claude response was TRUNCATED (hit max_tokens)");
-      }
-      try {
-        return JSON.parse(content);
-      } catch {
-        const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-        if (codeBlockMatch) {
-          try {
-            return JSON.parse(codeBlockMatch[1].trim());
-          } catch {
-          }
-        }
-        const firstBrace = content.indexOf("{");
-        const lastBrace = content.lastIndexOf("}");
-        if (firstBrace !== -1 && lastBrace > firstBrace) {
-          try {
-            return JSON.parse(content.substring(firstBrace, lastBrace + 1));
-          } catch {
-          }
-        }
-        const firstBracket = content.indexOf("[");
-        const lastBracket = content.lastIndexOf("]");
-        if (firstBracket !== -1 && lastBracket > firstBracket) {
-          try {
-            return JSON.parse(content.substring(firstBracket, lastBracket + 1));
-          } catch {
-          }
-        }
-        console.error("Failed to parse Claude response as JSON. First 500 chars:", content.substring(0, 500));
-        return { raw: content, _error: "JSON parse failed" };
-      }
-    } catch (e) {
-      console.error(`Claude API exception (attempt ${attempt}):`, e.message || e);
-      if (attempt >= 2) return { _error: `Exception: ${e.message || e}` };
-    }
-  }
-}
-function generateMeetingBriefEmail(clientName, meetingBrief) {
-  const agenda = meetingBrief.meetingAgenda || [];
-  const investment = meetingBrief.investment || {};
-  const rec = meetingBrief.recommendedScenario || {};
-  const agendaHtml = agenda.map(
-    (item) => `<tr><td style="padding:8px;border-bottom:1px solid #e0e0e0;"><strong>${item.timeSlot}</strong></td><td style="padding:8px;border-bottom:1px solid #e0e0e0;">${item.topic}</td></tr>`
-  ).join("");
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.6;color:#333}.container{max-width:600px;margin:0 auto;padding:20px}.header{background:#1a1a2e;color:white;padding:20px;border-radius:8px 8px 0 0}.content{background:#f8f9fa;padding:20px;border-radius:0 0 8px 8px}.section{margin-bottom:24px}.section-title{color:#1a1a2e;font-size:18px;font-weight:600;margin-bottom:12px;border-bottom:2px solid #e27308;padding-bottom:8px}table{width:100%;border-collapse:collapse}.subtle{color:#6c757d;font-size:14px}</style></head><body><div class="container"><div class="header"><h1>Meeting Brief: ${clientName}</h1><p class="subtle">Prepared by Archificials Research Pipeline</p></div><div class="content"><div class="section"><div class="section-title">Executive Summary</div><p>${meetingBrief.executiveSummary || "See full brief"}</p></div><div class="section"><div class="section-title">Key Pain Points</div>${meetingBrief.painPoints?.map((p) => `<p><strong>${p.point}</strong> (Severity: ${p.severity}/10)</p>`).join("") || "<p>See full brief</p>"}</div><div class="section"><div class="section-title">Recommended Scenario</div><p><strong>Lead with: Scenario ${rec.scenario}</strong></p><p>${rec.hook || ""}</p></div><div class="section"><div class="section-title">Investment Range</div><p><strong>First year:</strong> ${investment.recommendedRange || "See full brief"}</p><p><strong>Payback:</strong> ${investment.paybackPeriod || "See full brief"}</p></div><div class="section"><div class="section-title">Meeting Agenda (60 min)</div><table>${agendaHtml || '<tr><td colspan="2">See full brief</td></tr>'}</table></div><div class="section"><p class="subtle">Full research includes market analysis, 6 deployment scenarios, and meeting strategy. Internal use only.</p></div></div></div></body></html>`;
 }
 async function sendNotificationEmail(to, subject, htmlContent, resendApiKey) {
   try {
@@ -2792,6 +1133,82 @@ async function sendNotificationEmail(to, subject, htmlContent, resendApiKey) {
     return false;
   }
 }
+function buildPromptReadyEmail(clientName, scores, promptUrl) {
+  function scoreLabel(s) {
+    return s < 40 ? "Weak" : s < 65 ? "Moderate" : "Strong";
+  }
+  function scoreColor(s) {
+    return s < 40 ? "#dc3545" : s < 65 ? "#e27308" : "#28a745";
+  }
+  const dims = [
+    { name: "Operational Efficiency", score: scores.operational },
+    { name: "Client Acquisition", score: scores.acquisition },
+    { name: "Digital Visibility", score: scores.digital },
+    { name: "Practice Readiness", score: scores.practice_readiness }
+  ];
+  const scoreRows = dims.map(
+    (d) => `<tr>
+      <td style="padding:10px 12px;border-bottom:1px solid #e0e0e0;font-weight:500;">${d.name}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #e0e0e0;text-align:center;">
+        <span style="color:${scoreColor(d.score)};font-weight:700;">${d.score}/100</span>
+      </td>
+      <td style="padding:10px 12px;border-bottom:1px solid #e0e0e0;color:${scoreColor(d.score)};">${scoreLabel(d.score)}</td>
+    </tr>`
+  ).join("");
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#333;margin:0;padding:0;">
+<div style="max-width:600px;margin:0 auto;padding:20px;">
+
+  <div style="background:#1a1a2e;color:white;padding:24px;border-radius:8px 8px 0 0;">
+    <h1 style="margin:0 0 4px 0;font-size:22px;">Research Prompt Ready</h1>
+    <p style="margin:0;color:#ccc;font-size:14px;">${clientName} | AI Readiness Assessment</p>
+  </div>
+
+  <div style="background:#f8f9fa;padding:24px;border-radius:0 0 8px 8px;">
+
+    <div style="margin-bottom:24px;">
+      <h2 style="color:#1a1a2e;font-size:16px;margin:0 0 4px 0;">Overall Score</h2>
+      <p style="font-size:32px;font-weight:700;color:${scoreColor(scores.overall)};margin:0;">${scores.overall}/100
+        <span style="font-size:14px;font-weight:400;color:#666;"> \u2014 ${scoreLabel(scores.overall)}</span>
+      </p>
+    </div>
+
+    <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+      <tr style="background:#1a1a2e;color:white;">
+        <th style="padding:10px 12px;text-align:left;">Dimension</th>
+        <th style="padding:10px 12px;text-align:center;">Score</th>
+        <th style="padding:10px 12px;text-align:left;">Rating</th>
+      </tr>
+      ${scoreRows}
+    </table>
+
+    <div style="background:#fff;border:2px solid #e27308;border-radius:8px;padding:20px;text-align:center;margin-bottom:24px;">
+      <p style="margin:0 0 12px 0;font-size:14px;color:#666;">Research prompt document is ready</p>
+      <a href="${promptUrl}" style="display:inline-block;background:#e27308;color:white;text-decoration:none;padding:12px 32px;border-radius:6px;font-weight:600;font-size:16px;">
+        Download Prompt
+      </a>
+    </div>
+
+    <div style="background:#fff;border-radius:6px;padding:16px;border:1px solid #e0e0e0;">
+      <h3 style="margin:0 0 8px 0;font-size:14px;color:#1a1a2e;">How to use:</h3>
+      <ol style="margin:0;padding-left:20px;font-size:13px;color:#555;">
+        <li style="margin-bottom:6px;">Open the prompt link above and copy the full document</li>
+        <li style="margin-bottom:6px;">Open <strong>Claude Cowork</strong> (ensure web search is enabled)</li>
+        <li style="margin-bottom:6px;">Paste the prompt and let Claude execute the research</li>
+        <li>Use the output to build the client presentation</li>
+      </ol>
+    </div>
+
+    <p style="margin-top:20px;font-size:12px;color:#999;text-align:center;">
+      Generated by Archificials Assessment Pipeline v5.0 | Internal use only
+    </p>
+  </div>
+</div>
+</body>
+</html>`;
+}
 var index_default = {
   async fetch(request, env, ctx) {
     if (request.method === "OPTIONS") {
@@ -2805,7 +1222,7 @@ var index_default = {
     }
     const url = new URL(request.url);
     if (url.pathname === "/health") {
-      return new Response(JSON.stringify({ status: "ok", version: "4.2.0-stream" }), {
+      return new Response(JSON.stringify({ status: "ok", version: "5.0.0-prompt" }), {
         headers: { "Content-Type": "application/json" }
       });
     }
@@ -2847,7 +1264,7 @@ var index_default = {
         const baseMap = { "law-firm": "apph2tKtp5MCF8cGT", "architecture": "appB7PmFnNvV3085q", "higher-ed": "appB7PmFnNvV3085q" };
         const tableName = tableMap[vertical] || "V2 Assessments";
         const baseId = baseMap[vertical] || env.AIRTABLE_BASE_ID;
-        console.log(`[1/7] Fetching record ${recordId}`);
+        console.log(`[1/3] Fetching record ${recordId}`);
         const assessmentData = await fetchAssessmentRecord(baseId, tableName, recordId, env.AIRTABLE_API_KEY);
         if (!assessmentData) {
           return new Response(JSON.stringify({ error: "Failed to fetch assessment record" }), {
@@ -2871,112 +1288,34 @@ var index_default = {
         };
         assessmentData.scores = scores;
         assessmentData.vertical = vertical;
-        console.log("[2/7] Running Brave Search");
-        const { buildSearchQueries } = await Promise.resolve().then(() => __toESM(require_market_analysis()));
-        const queries = buildSearchQueries(assessmentData);
-        const searchResults = await Promise.all(
-          queries.map((q) => braveSearch(q, env.BRAVE_API_KEY))
-        );
-        console.log(`[2/7] Got ${searchResults.flat().length} search results`);
-        console.log("[3/7] Generating market analysis");
-        const { buildMarketAnalysisPrompt } = await Promise.resolve().then(() => __toESM(require_market_analysis()));
-        const marketPrompt = buildMarketAnalysisPrompt(assessmentData, searchResults);
-        const marketAnalysis = await callClaudeAPI(
-          marketPrompt.system,
-          marketPrompt.user,
-          env.ANTHROPIC_API_KEY,
-          8e3
-        );
-        if (!marketAnalysis || marketAnalysis._error) {
-          console.error("[3/7] Market analysis failed:", marketAnalysis?._error);
-          return new Response(JSON.stringify({
-            error: "Market analysis failed",
-            detail: marketAnalysis?._error,
-            elapsed_ms: Date.now() - pipelineStart
-          }), { status: 500, headers: { "Content-Type": "application/json" } });
-        }
-        console.log(`[3/7] Market analysis complete at ${((Date.now() - pipelineStart) / 1e3).toFixed(1)}s`);
-        console.log("[4-5/7] Generating scenarios + meeting brief IN PARALLEL");
-        const { buildDeploymentScenariosPrompt } = await Promise.resolve().then(() => __toESM(require_deployment_scenarios()));
-        const { buildMeetingBriefPrompt } = await Promise.resolve().then(() => __toESM(require_meeting_brief()));
-        const scenariosPrompt = buildDeploymentScenariosPrompt(assessmentData, searchResults, marketAnalysis);
-        const briefPrompt = buildMeetingBriefPrompt(assessmentData, marketAnalysis, null);
-        const [deploymentScenarios, meetingBrief] = await Promise.all([
-          callClaudeAPI(scenariosPrompt.system, scenariosPrompt.user, env.ANTHROPIC_API_KEY, 8e3),
-          callClaudeAPI(briefPrompt.system, briefPrompt.user, env.ANTHROPIC_API_KEY, 8e3)
-        ]);
-        if (!deploymentScenarios || deploymentScenarios._error) {
-          console.error("[4/7] Scenarios failed:", deploymentScenarios?._error);
-          return new Response(JSON.stringify({
-            error: "Deployment scenarios failed",
-            detail: deploymentScenarios?._error,
-            elapsed_ms: Date.now() - pipelineStart
-          }), { status: 500, headers: { "Content-Type": "application/json" } });
-        }
-        if (!meetingBrief || meetingBrief._error) {
-          console.error("[5/7] Meeting brief failed:", meetingBrief?._error);
-          return new Response(JSON.stringify({
-            error: "Meeting brief failed",
-            detail: meetingBrief?._error,
-            elapsed_ms: Date.now() - pipelineStart
-          }), { status: 500, headers: { "Content-Type": "application/json" } });
-        }
-        console.log(`[4-5/7] Parallel calls done at ${((Date.now() - pipelineStart) / 1e3).toFixed(1)}s`);
-        console.log("[6/7] Assembling presentation");
+        console.log("[2/3] Generating prompt document");
+        const { generatePromptDocument } = await Promise.resolve().then(() => __toESM(require_prompt_generator()));
+        const promptDocument = generatePromptDocument(assessmentData);
+        console.log(`[2/3] Prompt document generated: ${promptDocument.length} chars`);
         const clientName = assessmentData.inst_name || assessmentData.firm_name || "Client";
         const clientSlug = clientName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
         const now = /* @__PURE__ */ new Date();
         const slugDate = `${clientSlug}-${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
-        const friendlyDate = now.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-        const results = {
-          assessmentId: recordId,
-          vertical,
-          generatedAt: now.toISOString(),
-          marketAnalysis,
-          deploymentScenarios,
-          meetingBrief
-        };
-        await env.REPORTS_BUCKET.put(`reports/${clientSlug}/research.json`, JSON.stringify(results, null, 2), {
-          contentType: "application/json",
-          metadata: { generated: now.toISOString(), vertical }
+        await env.REPORTS_BUCKET.put(`prompts/${slugDate}/prompt.md`, promptDocument, {
+          httpMetadata: { contentType: "text/plain; charset=utf-8" },
+          customMetadata: { clientName, vertical, generated: now.toISOString() }
         });
-        const { assemblePresentation: assemblePresentation2 } = await Promise.resolve().then(() => (init_assembler(), assembler_exports));
-        const reportHtml = assemblePresentation2({
-          assessment: assessmentData,
-          scores,
-          marketAnalysis,
-          deploymentScenarios,
-          meetingBrief,
-          vertical,
-          clientName,
-          date: friendlyDate
-        });
-        const password = Math.random().toString(36).substring(2, 10);
-        const pwHashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(password));
-        const pwHash = Array.from(new Uint8Array(pwHashBuffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
-        await env.REPORTS_BUCKET.put(`reports/${slugDate}/index.html`, reportHtml, {
-          httpMetadata: { contentType: "text/html" },
-          customMetadata: { passwordHash: pwHash, clientName }
-        });
-        console.log(`[6/7] Report uploaded: ${slugDate}`);
-        console.log("[7/7] Sending notification email");
-        let emailHtml = generateMeetingBriefEmail(clientName, meetingBrief);
+        console.log(`[3/3] Prompt uploaded: prompts/${slugDate}/prompt.md`);
         const gatewayHost = url.host.replace("report-orchestrator", "report-gateway");
-        const reportUrl = `https://${gatewayHost}/r/${slugDate}`;
-        emailHtml += `<hr/><p><strong>Report URL:</strong> <a href="${reportUrl}">${reportUrl}</a></p><p><strong>Password:</strong> ${password}</p>`;
+        const promptUrl = `https://${gatewayHost}/p/${slugDate}`;
+        const emailHtml = buildPromptReadyEmail(clientName, scores, promptUrl);
         await sendNotificationEmail(
           env.NOTIFY_EMAIL,
-          `Report Ready: ${clientName}`,
+          `Prompt Ready: ${clientName}`,
           emailHtml,
           env.RESEND_API_KEY
         );
         const totalElapsed = Date.now() - pipelineStart;
-        console.log(`Pipeline complete in ${(totalElapsed / 1e3).toFixed(1)}s. Slug: ${slugDate}, Password: ${password}`);
+        console.log(`Pipeline complete in ${(totalElapsed / 1e3).toFixed(1)}s. Slug: ${slugDate}`);
         return new Response(JSON.stringify({
           status: "complete",
           slug: slugDate,
-          password,
-          reportUrl,
+          promptUrl,
           elapsed_ms: totalElapsed
         }), {
           status: 200,
