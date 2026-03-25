@@ -7,7 +7,7 @@ export const CONFIG = {
   BRAND: {
     name: "Archificials",
     tagline: "Powered by Archificials",
-    website: "https://www.archificials.com",
+    website: "https://www.archificials.com/contact",
     color: {
       primary: "#1a1a2e",
       accent: "#e27308",
