@@ -8,13 +8,8 @@
     var target = document.getElementById(ROOT_ID);
     if (!target) { console.warn('[baker-matthews-report] No element with id="' + ROOT_ID + '" found.'); return; }
 
-    // Ensure Webflow's code embed wrapper doesn't collapse
-    if (target.parentElement) {
-      target.parentElement.style.display = 'block';
-      target.parentElement.style.width = '100%';
-    }
-    target.style.display = 'block';
-    target.style.width = '100%';
+    // Break out of Webflow container to fill full viewport width
+    target.style.cssText = 'position:relative;width:100vw;left:50%;transform:translateX(-50%);display:block;';
 
     var iframe = document.createElement('iframe');
     iframe.title = 'Baker Matthews Law Collective AI Readiness Report';
@@ -22,6 +17,7 @@
     iframe.setAttribute('scrolling', 'yes');
     iframe.style.cssText = 'width:100%;min-height:900px;border:none;display:block;';
 
+    // Fetch HTML and inject via srcdoc to bypass CDN content-type restrictions
     fetch(HTML_URL)
       .then(function (r) { return r.text(); })
       .then(function (html) {
